@@ -60,13 +60,27 @@ export const GEO = {
   circle: new THREE.CircleGeometry(1, 20),
 }
 
+export const windUniforms = { uTime: { value: 0 } }
+
+type Patch = (shader: THREE.WebGLProgramParametersWithUniforms) => void
+/** Chain shader patches on one material (wind, glow…). */
+function patch(mat: THREE.Material, key: string, fn: Patch) {
+  const prev = mat.onBeforeCompile.bind(mat)
+  const prevKey = mat.customProgramCacheKey.bind(mat)
+  mat.onBeforeCompile = (shader, renderer) => {
+    prev(shader, renderer)
+    fn(shader)
+  }
+  mat.customProgramCacheKey = () => prevKey() + key
+  return mat
+}
+
 /**
  * Adds gentle wind sway to a material (grass, flowers, canopies).
  * `strength` scales displacement by the vertex's local height.
  */
-export const windUniforms = { uTime: { value: 0 } }
 export function addWind(mat: THREE.Material, strength: number, heightScale = 1) {
-  mat.onBeforeCompile = (shader) => {
+  return patch(mat, `wind${strength}:${heightScale}`, (shader) => {
     shader.uniforms.uTime = windUniforms.uTime
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nuniform float uTime;')
@@ -84,7 +98,33 @@ export function addWind(mat: THREE.Material, strength: number, heightScale = 1) 
           transformed.z += cos(uTime * 1.3 + ip.z * 0.3) * ${(strength * 0.5).toFixed(3)} * hgt;
         }`,
       )
+  })
+}
+
+/** Makes emissive glow take the per-instance / vertex colour, so instanced lights glow in their own colours. */
+export function instanceGlow(mat: THREE.Material) {
+  return patch(mat, 'iglow', (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+      #ifdef USE_COLOR
+        totalEmissiveRadiance *= vColor.rgb;
+      #endif`,
+    )
+  })
+}
+
+/** Lantern / window glow materials; their glow follows the time of day (see EnvClock). */
+export const lampMaterials: THREE.MeshToonMaterial[] = []
+export function lampMaterial(color = '#fff4d6', glow = '#ffd9a8') {
+  const key = `lamp:${color}:${glow}`
+  let m = cache.get(key) as THREE.MeshToonMaterial | undefined
+  if (!m) {
+    m = new THREE.MeshToonMaterial({ color, gradientMap: toonRamp })
+    m.emissive.set(glow)
+    m.emissiveIntensity = 0.6
+    cache.set(key, m)
+    lampMaterials.push(m)
   }
-  mat.customProgramCacheKey = () => `wind${strength}:${heightScale}`
-  return mat
+  return m
 }

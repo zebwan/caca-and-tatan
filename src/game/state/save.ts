@@ -8,11 +8,12 @@ const SETTINGS_KEY = 'caca-tatan:settings:v1'
 type Persisted = Pick<
   GameState,
   'quests' | 'fragments' | 'keepsakes' | 'notes' | 'accessories' | 'equipped' | 'regions' | 'collected' | 'flags'
-> & {
+> &
+  Partial<Pick<GameState, 'region' | 'equippedTatan' | 'looks' | 'pawprints' | 'owned' | 'home'>> & {
   version: 1
   savedAt: number
   player: { x: number; y: number; z: number; yaw: number }
-  explored?: string
+  explored?: Record<string, string> | string
 }
 
 function safeGet(key: string) {
@@ -52,6 +53,12 @@ export function saveGame() {
     regions: s.regions,
     collected: s.collected,
     flags: s.flags,
+    region: s.region,
+    equippedTatan: s.equippedTatan,
+    looks: s.looks,
+    pawprints: s.pawprints,
+    owned: s.owned,
+    home: s.home,
     player: { x: p.x, y: p.y, z: p.z, yaw: runtime.player.yaw },
     explored: exploration.serialize(),
   }

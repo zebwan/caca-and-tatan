@@ -1,6 +1,6 @@
 export type Vec2 = { x: number; z: number }
 
-export type RegionId = 'meadow' | 'village' | 'forest' | 'bay' | 'garden'
+export type RegionId = 'meadow' | 'village' | 'forest' | 'bay' | 'garden' | 'home'
 
 export type QuestState = 'locked' | 'available' | 'in_progress' | 'completed'
 
@@ -15,6 +15,14 @@ export interface QuestStep {
   location: Vec2
   /** Optional label for the progress counter, e.g. "butterflies". */
   progressLabel?: string
+  /**
+   * For "do this N times" steps: the individual targets. The objective marker
+   * points at the nearest one not yet done (ids are `${prefix}:${index}` in
+   * the collected list), or strictly the next one when `ordered`.
+   */
+  targets?: { prefix: string; points: Vec2[]; ordered?: boolean }
+  /** Region of this step when it differs from the quest's region. */
+  region?: RegionId
 }
 
 export interface QuestReward {
@@ -23,6 +31,10 @@ export interface QuestReward {
   accessory?: string
   /** Tatan note shown when the quest completes. */
   note?: string
+  /** Dialogue (usually Tatan talking, once he's with Caca) shown when the quest completes. */
+  say?: string
+  /** Pawprints earned; defaults from data/shop.ts PAWPRINTS when omitted. */
+  pawprints?: number
 }
 
 export interface QuestDef {
@@ -40,6 +52,8 @@ export interface QuestDef {
   startObjective: string
   steps: QuestStep[]
   reward: QuestReward
+  /** Shop items given for free when the quest starts. */
+  startGift?: string[]
   /** Quest ids unlocked on completion (in addition to anything whose `requires` is now met). */
   unlocks?: string[]
 }
@@ -67,7 +81,7 @@ export interface AccessoryDef {
   id: string
   name: string
   description: string
-  slot: 'head' | 'face' | 'neck' | 'back'
+  slot: 'bow' | 'head' | 'face' | 'neck' | 'back'
   /** How it is unlocked, shown in the wardrobe while locked. */
   hint: string
 }

@@ -1,19 +1,21 @@
 import { useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { Sky, Lights, FOG_COLOR } from './world/Sky'
-import { Distant } from './world/Distant'
-import { Petals, Fireflies } from './world/Atmosphere'
+import { Environment, EnvClock } from './world/Environment'
+import { Petals, Rain, NightFireflies } from './world/Weather'
 import { Guidance } from './world/Guidance'
+import { Companion } from './characters/Companion'
+import { Hearts, LeafUmbrella } from './world/Hearts'
+import type { RegionId } from './data/types'
 import { Player } from './characters/Player'
 import { CameraRig } from './characters/CameraRig'
 import { runtime } from './state/runtime'
-import { game } from './state/store'
+import { game, useGame } from './state/store'
 import { saveGame } from './state/save'
 import { installInput, input } from './systems/input'
 import { interactions } from './systems/interactions'
 import { windUniforms } from './world/materials'
-import { CURRENT_REGION, REGION_RUNTIME } from './world/regions'
+import { regionRT } from './world/regions'
 import { HINTS } from './data/story'
 import { MEADOW } from './world/meadow/layout'
 
@@ -93,19 +95,28 @@ function InputBinder() {
   return null
 }
 
-function WorldSetup() {
-  const scene = useThree((s) => s.scene)
+function RegionWorld({ id }: { id: RegionId }) {
+  const region = regionRT(id)
   useEffect(() => {
-    scene.fog = new THREE.Fog(FOG_COLOR, 70, 260)
-    scene.background = new THREE.Color(FOG_COLOR)
-    runtime.world = REGION_RUNTIME[CURRENT_REGION]!.physics()
-  }, [scene])
-  return null
+    runtime.world = region.physics()
+  }, [region])
+  const Scene = region.Scene
+  const Distant = region.Distant
+  const atmo = region.atmosphere
+  return (
+    <>
+      <Environment atmosphere={atmo} />
+      <Distant />
+      <Scene />
+      <Petals base={atmo.petals ? 0.35 : 0} />
+      <NightFireflies base={id === 'forest' ? 0.55 : 0} />
+      <Guidance heightAt={region.heightAt} />
+    </>
+  )
 }
 
 export function GameScene() {
-  const region = REGION_RUNTIME[CURRENT_REGION]!
-  const Scene = region.Scene
+  const regionId = useGame((s) => s.region)
   return (
     <Canvas
       shadows="soft"
@@ -117,18 +128,16 @@ export function GameScene() {
         gl.toneMappingExposure = 1.0
       }}
     >
-      <WorldSetup />
       <InputBinder />
+      <EnvClock />
       <GameLoop />
-      <Sky />
-      <Lights />
-      <Distant />
-      <Scene />
+      <RegionWorld key={regionId} id={regionId} />
       <Player />
+      <Companion />
       <CameraRig />
-      <Petals />
-      <Fireflies />
-      <Guidance heightAt={region.heightAt} />
+      <Rain />
+      <Hearts />
+      <LeafUmbrella />
     </Canvas>
   )
 }

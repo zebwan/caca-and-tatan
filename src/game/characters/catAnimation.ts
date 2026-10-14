@@ -141,7 +141,7 @@ export class CatAnimator {
     const lid = this.blink > 0 ? 0.12 : 1
     rig.eyes.forEach((e) => {
       e.visible = !happy
-      e.scale.y = closed ? 0.1 : lid
+      e.scale.y = (closed ? 0.1 : lid) * ((e.userData.sy as number | undefined) ?? 1)
     })
     rig.happyEyes.forEach((e) => (e.visible = happy))
 
@@ -156,7 +156,7 @@ export class CatAnimator {
       const sway = Math.sin(t * (1.7 + g * 1.6) * wag - i * 0.6) * (0.16 + 0.1 * Math.min(g, 1) + (happy ? 0.12 : 0))
       const curl = this.sit * (base ? 0.9 : 0.32)
       seg.rotation.z = sway * (1 - this.sit * 0.6) + (base ? 0 : curl)
-      seg.rotation.x = base ? -0.15 - this.air * 0.4 - this.sit * 0.95 : -0.1 + this.sit * 0.1
+      seg.rotation.x = base ? 0.15 - this.air * 0.4 - this.sit * 1.25 : 0.16 - this.sit * 0.22 - this.air * 0.1
     })
 
     // whole-model moves: happy hop, celebration spin

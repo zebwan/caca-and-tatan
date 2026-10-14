@@ -2,7 +2,7 @@
  * Keyboard, mouse and touch input. Keys are routed by game state: dialogue
  * and notes get E/Space/Enter, menus get Esc/M, gameplay gets the rest.
  */
-import { game } from '../state/store'
+import { game, type Menu } from '../state/store'
 import { runtime } from '../state/runtime'
 import { audio } from './audio'
 
@@ -14,6 +14,8 @@ export const input = {
   lookDY: 0,
   jumpAt: -1,
   interact: false,
+  cuddle: false,
+  runToggled: false,
   pointerLocked: false,
   dragging: false,
   isTouch: typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches,
@@ -48,10 +50,10 @@ export function requestPointer() {
   }
 }
 
-export function openMenu(menu: 'pause' | 'map') {
+export function openMenu(menu: Exclude<Menu, null>, arg: string | null = null) {
   releasePointer()
   input.keys.clear()
-  game.set({ menu })
+  game.set({ menu, menuArg: arg })
   audio.sfx(menu === 'map' ? 'map' : 'click')
 }
 export function closeMenu() {
@@ -73,7 +75,8 @@ export function moveVector() {
     x /= len
     z /= len
   }
-  const run = k.has('ShiftLeft') || k.has('ShiftRight') || input.touchRun || Math.hypot(input.joy.x, input.joy.y) > 0.96
+  const shift = game.get().settings.runMode === 'toggle' ? input.runToggled : k.has('ShiftLeft') || k.has('ShiftRight')
+  const run = shift || input.touchRun || Math.hypot(input.joy.x, input.joy.y) > 0.96
   return { x, z, run }
 }
 
@@ -100,6 +103,8 @@ function onKeyDown(e: KeyboardEvent) {
   if (e.code === 'KeyM') return openMenu('map')
   if (e.code === 'KeyE' || e.code === 'Enter') input.interact = true
   if (e.code === 'Space') input.jumpAt = runtime.time
+  if (e.code === 'KeyC') input.cuddle = true
+  if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && s.settings.runMode === 'toggle') input.runToggled = !input.runToggled
   input.keys.add(e.code)
 }
 

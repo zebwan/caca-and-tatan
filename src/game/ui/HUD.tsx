@@ -4,7 +4,8 @@ import { runtime } from '../state/runtime'
 import { currentObjective } from '../systems/quests'
 import { input, openMenu } from '../systems/input'
 import { Minimap } from './Minimap'
-import { ArrowIcon, MapIcon, PauseIcon, StarIcon, ToastIcon } from './icons'
+import { ArrowIcon, HeartIcon, MapIcon, PauseIcon, PawIcon, StarIcon, ToastIcon } from './icons'
+import { TOTAL_FRAGMENTS } from '../data/quests'
 import { TouchControls } from './TouchControls'
 
 function Objective() {
@@ -31,7 +32,8 @@ function Objective() {
       if (svg) svg.style.transform = `rotate(${ang}rad)`
       if (dist.current) {
         const d = Math.hypot(dx, dz)
-        dist.current.textContent = d < 4 ? 'right here' : `${Math.round(d)} m away`
+        const via = runtime.objectiveVia
+        dist.current.textContent = via ? `Head to ${via} · ${Math.round(d)} m` : d < 4 ? 'right here' : `${Math.round(d)} m away`
       }
     }
     raf = requestAnimationFrame(tick)
@@ -60,8 +62,7 @@ function Objective() {
   )
 }
 
-function Fragments() {
-  const n = useGame((s) => s.fragments)
+function Counter({ value, title, children }: { value: number; title: string; children: React.ReactNode }) {
   const [bump, setBump] = useState(false)
   const first = useRef(true)
   useEffect(() => {
@@ -72,11 +73,29 @@ function Fragments() {
     setBump(true)
     const t = setTimeout(() => setBump(false), 600)
     return () => clearTimeout(t)
-  }, [n])
+  }, [value])
   return (
-    <div className={`counter ${bump ? 'bump' : ''}`} title="Starlight fragments">
-      <StarIcon size={22} />
-      <span>{n} / 3</span>
+    <div className={`counter ${bump ? 'bump' : ''}`} title={title}>
+      {children}
+    </div>
+  )
+}
+
+function Fragments() {
+  const n = useGame((s) => s.fragments)
+  const paws = useGame((s) => s.pawprints)
+  return (
+    <div className="counters">
+      <Counter value={n} title="Starlight fragments">
+        <StarIcon size={22} />
+        <span>
+          {n} / {TOTAL_FRAGMENTS}
+        </span>
+      </Counter>
+      <Counter value={paws} title="Pawprints">
+        <PawIcon size={20} />
+        <span>{paws}</span>
+      </Counter>
     </div>
   )
 }
@@ -115,6 +134,7 @@ export function HUD() {
   const hint = useGame((s) => s.hint)
   const blocked = useGame((s) => s.queue.length > 0)
   const cutscene = useGame((s) => s.cutscene)
+  const joined = useGame((s) => !!s.flags.tatanJoined)
   if (cutscene) return null
   return (
     <>
@@ -129,6 +149,11 @@ export function HUD() {
           <button className="icon-btn" title="Pause (Esc)" onClick={() => !game.inputBlocked() && openMenu('pause')}>
             <PauseIcon />
           </button>
+          {joined && (
+            <button className="icon-btn" title="Cuddle Tatan (C)" onClick={() => (input.cuddle = true)}>
+              <HeartIcon size={22} />
+            </button>
+          )}
         </div>
       </div>
       {!blocked && <Prompt />}

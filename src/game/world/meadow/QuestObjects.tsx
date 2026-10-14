@@ -11,12 +11,13 @@ import { GEO, toon } from '../materials'
 import { runtime } from '../../state/runtime'
 import { game, useGame } from '../../state/store'
 import { interactions } from '../../systems/interactions'
-import { collectKeepsake, dispatch, questState, questStepId, revealRegion } from '../../systems/quests'
+import { dispatch, questState, questStepId, revealRegion } from '../../systems/quests'
+import { Keepsake } from '../common/Keepsake'
 import { say } from '../../systems/dialogue'
+import { travelTo } from '../../flow'
 import { audio } from '../../systems/audio'
 import { bus } from '../../systems/bus'
 import { saveGame } from '../../state/save'
-import { KEEPSAKES } from '../../data/items'
 import { starGeo } from '../../characters/Npc'
 import { buildCat, disposeRig, setRigOpacity, VARIANTS } from '../../characters/catBuilder'
 import { CatAnimator } from '../../characters/catAnimation'
@@ -337,63 +338,6 @@ function AmbientButterflies() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Keepsakes (optional, hidden)
 // ─────────────────────────────────────────────────────────────────────────────
-function KeepsakeModel({ id }: { id: string }) {
-  if (id === 'photo')
-    return (
-      <group>
-        <mesh geometry={GEO.box} material={toon('#ffffff', '#ffffff', 0.3)} scale={[0.42, 0.5, 0.03]} />
-        <mesh geometry={GEO.box} material={toon('#f7b6cc', '#f7b6cc', 0.3)} scale={[0.34, 0.32, 0.035]} position={[0, 0.05, 0]} />
-        <mesh geometry={GEO.sphere} material={toon('#fff4ea')} scale={[0.05, 0.05, 0.02]} position={[-0.06, 0.05, 0.02]} />
-        <mesh geometry={GEO.sphere} material={toon('#c9cfdf')} scale={[0.055, 0.055, 0.02]} position={[0.07, 0.05, 0.02]} />
-      </group>
-    )
-  if (id === 'pressedFlower')
-    return (
-      <group rotation={[0.3, 0, 0]}>
-        <mesh geometry={GEO.box} material={toon('#bfe0a8')} scale={[0.4, 0.5, 0.02]} />
-        {Array.from({ length: 5 }, (_, k) => (
-          <mesh key={k} geometry={GEO.sphere} material={toon('#f7a8c6', '#f7a8c6', 0.4)} scale={[0.07, 0.04, 0.012]} position={[Math.cos(k * 1.26) * 0.08, 0.06 + Math.sin(k * 1.26) * 0.08, 0.02]} rotation={[0, 0, k * 1.26]} />
-        ))}
-        <mesh geometry={GEO.sphere} material={toon('#f7d774')} scale={[0.035, 0.035, 0.015]} position={[0, 0.06, 0.025]} />
-      </group>
-    )
-  return <mesh geometry={starGeo} material={toon('#fff2d6', '#ffe6b0', 0.5)} scale={0.9} />
-}
-
-function Keepsake({ id, x, z, y }: { id: string; x: number; z: number; y: number }) {
-  const have = useGame((s) => s.keepsakes.includes(id))
-  const ref = useRef<THREE.Group>(null)
-  useEffect(
-    () =>
-      interactions.register({
-        id: `keepsake:${id}`,
-        position: new THREE.Vector3(x, y + 0.8, z),
-        radius: 2.0,
-        label: () => `Pick up ${KEEPSAKES[id].name.toLowerCase()}`,
-        enabled: () => !game.get().keepsakes.includes(id),
-        onInteract: () => {
-          audio.sfx('sparkle')
-          collectKeepsake(id)
-        },
-      }),
-    [id, x, y, z],
-  )
-  useFrame(() => {
-    if (!ref.current) return
-    ref.current.position.y = y + 0.75 + Math.sin(runtime.time * 1.8 + x) * 0.08
-    ref.current.rotation.y = runtime.time * 0.8
-  })
-  if (have) return null
-  return (
-    <group ref={ref} position={[x, y + 0.75, z]}>
-      <KeepsakeModel id={id} />
-      <mesh geometry={GEO.sphere} scale={0.42}>
-        <meshBasicMaterial color="#fff0c8" transparent opacity={0.18} depthWrite={false} />
-      </mesh>
-    </group>
-  )
-}
-
 function Keepsakes() {
   const k = MEADOW.keepsakes
   const rock = MEADOW.rockSteps[2]
@@ -645,11 +589,12 @@ function StarlightArch() {
         id: 'arch',
         position: new THREE.Vector3(a.x, y + 1.5, a.z + 0.5),
         radius: 3.6,
-        label: () => (questState('q_arch') === 'in_progress' ? 'Place the starlight fragments' : 'Look at the arch'),
+        label: () =>
+          questState('q_arch') === 'in_progress' ? 'Place the starlight fragments' : questState('q_arch') === 'completed' ? 'Walk through to Cuddleberry Village' : 'Look at the arch',
         enabled: () => !seq.current,
         onInteract: () => {
           const qs = questState('q_arch')
-          if (qs === 'completed') return say('arch_after')
+          if (qs === 'completed') return travelTo('village', 'south')
           if (qs !== 'in_progress') return say('arch_locked')
           say('arch_ready', () => {
             seq.current = { t: 0 }

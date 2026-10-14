@@ -16,9 +16,9 @@ export function mulberry32(seed: number) {
   }
 }
 
-export type TreeKind = 'cherry' | 'green' | 'lavender'
-export interface TreeSpot { x: number; z: number; y: number; s: number; rot: number; kind: TreeKind; collide: boolean }
-export interface PropSpot { x: number; z: number; y: number; s: number; rot: number; tint: number }
+import type { TreeKind } from '../common/treeKinds'
+import type { TreeSpot, PropSpot } from '../common/Vegetation'
+export type { TreeKind, TreeSpot, PropSpot }
 
 /** Spots that must stay clear of trees, rocks and bushes. */
 const KEEP_CLEAR: { x: number; z: number; r: number }[] = [

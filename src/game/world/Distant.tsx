@@ -10,7 +10,7 @@ import { GEO, toon } from './materials'
 import { mulberry32 } from './meadow/scatter'
 import { runtime } from '../state/runtime'
 
-function Hill({ p, s, c }: { p: [number, number, number]; s: [number, number, number]; c: string }) {
+export function Hill({ p, s, c }: { p: [number, number, number]; s: [number, number, number]; c: string }) {
   return <mesh geometry={GEO.sphereLo} material={toon(c)} position={p} scale={s} />
 }
 
@@ -29,7 +29,7 @@ function House({ p, yaw, wall, roof, s = 1 }: { p: [number, number, number]; yaw
   )
 }
 
-function DistantTrees({ center, count, spread, colors, seed, scale }: { center: [number, number, number]; count: number; spread: [number, number]; colors: string[]; seed: number; scale: number }) {
+export function DistantTrees({ center, count, spread, colors, seed, scale }: { center: [number, number, number]; count: number; spread: [number, number]; colors: string[]; seed: number; scale: number }) {
   const ref = useRef<THREE.InstancedMesh>(null)
   const geo = useMemo(() => {
     const g = new THREE.SphereGeometry(1, 10, 8)
@@ -142,7 +142,7 @@ const skyMats = {
 }
 const rockGeo = new THREE.ConeGeometry(1, 1, 7)
 
-function FloatingIsland({ p, s, tree }: { p: [number, number, number]; s: number; tree?: boolean }) {
+export function FloatingIsland({ p, s, tree }: { p: [number, number, number]; s: number; tree?: boolean }) {
   const glow = useRef<THREE.Mesh>(null)
   useFrame(() => {
     if (glow.current) skyMats.glow.emissiveIntensity = 0.6 + Math.sin(runtime.time * 1.4) * 0.2
@@ -165,6 +165,22 @@ function FloatingIsland({ p, s, tree }: { p: [number, number, number]; s: number
       ) : (
         <mesh geometry={GEO.sphereLo} material={skyMats.blossom} scale={[0.35, 0.3, 0.35]} position={[0.1, 0.38, 0]} />
       )}
+    </group>
+  )
+}
+
+/** The floating Starlight Garden islands, visible far to the north from every region. */
+export function SkyIslands({ x = 24, y = 64, z = -175 }: { x?: number; y?: number; z?: number }) {
+  const ref = useRef<THREE.Group>(null)
+  useFrame(() => {
+    if (ref.current) ref.current.position.y = y + Math.sin(runtime.time * 0.3) * 1.2
+  })
+  return (
+    <group ref={ref} position={[x, y, z]}>
+      <FloatingIsland p={[0, 0, 0]} s={12} tree />
+      <FloatingIsland p={[-26, -6, 14]} s={5.5} />
+      <FloatingIsland p={[22, 5, 16]} s={4.5} />
+      <FloatingIsland p={[-12, 10, -10]} s={3.2} />
     </group>
   )
 }

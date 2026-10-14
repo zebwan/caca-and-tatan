@@ -4,12 +4,13 @@
  * active objective as a pink star (clamped to the rim when far away),
  * completed objectives as small gold stars.
  */
-import { memo, useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { runtime } from '../state/runtime'
 import { game } from '../state/store'
 import { exploration, MAP_EXTENT } from '../systems/exploration'
 import { completedLocations } from '../systems/quests'
-import { CURRENT_REGION, REGION_RUNTIME } from '../world/regions'
+import { regionRT } from '../world/regions'
+import type { RegionId } from '../data/types'
 
 export function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string, stroke = '#fff') {
   ctx.beginPath()
@@ -44,44 +45,41 @@ export function drawPlayerArrow(ctx: CanvasRenderingContext2D, x: number, y: num
   ctx.restore()
 }
 
-/** Map image with fog applied, rebuilt only when exploration changes. */
-export function useFoggedMap() {
-  const ref = useRef<{ canvas: HTMLCanvasElement; version: number } | null>(null)
-  return useMemo(() => () => {
-    const region = REGION_RUNTIME[CURRENT_REGION]!
-    const base = region.mapImage()
-    if (!ref.current) {
-      const c = document.createElement('canvas')
-      c.width = base.width
-      c.height = base.height
-      ref.current = { canvas: c, version: -1 }
-    }
-    const r = ref.current
-    if (r.version !== exploration.version) {
-      const ctx = r.canvas.getContext('2d')!
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.drawImage(base, 0, 0)
-      // parchment fog where unexplored
-      const fog = document.createElement('canvas')
-      fog.width = fog.height = 128
-      const f = fog.getContext('2d')!
-      f.fillStyle = '#f3e6d3'
-      f.fillRect(0, 0, 128, 128)
-      f.globalCompositeOperation = 'destination-in'
-      f.drawImage(exploration.mask, 0, 0)
-      ctx.imageSmoothingEnabled = true
-      ctx.globalAlpha = 0.93
-      ctx.drawImage(fog, 0, 0, r.canvas.width, r.canvas.height)
-      ctx.globalAlpha = 1
-      r.version = exploration.version
-    }
-    return r.canvas
-  }, [])
+/** Region map image with parchment fog over unexplored parts (cached per region). */
+const fogCache = new Map<string, { canvas: HTMLCanvasElement; version: number }>()
+export function foggedMap(id: RegionId) {
+  const base = regionRT(id).mapImage()
+  let r = fogCache.get(id)
+  if (!r) {
+    const c = document.createElement('canvas')
+    c.width = base.width
+    c.height = base.height
+    r = { canvas: c, version: -1 }
+    fogCache.set(id, r)
+  }
+  const v = exploration.versionOf(id)
+  if (r.version !== v) {
+    const ctx = r.canvas.getContext('2d')!
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.drawImage(base, 0, 0)
+    const fog = document.createElement('canvas')
+    fog.width = fog.height = 128
+    const f = fog.getContext('2d')!
+    f.fillStyle = '#f3e6d3'
+    f.fillRect(0, 0, 128, 128)
+    f.globalCompositeOperation = 'destination-in'
+    f.drawImage(exploration.maskOf(id), 0, 0)
+    ctx.imageSmoothingEnabled = true
+    ctx.globalAlpha = 0.93
+    ctx.drawImage(fog, 0, 0, r.canvas.width, r.canvas.height)
+    ctx.globalAlpha = 1
+    r.version = v
+  }
+  return r.canvas
 }
 
 export const Minimap = memo(function Minimap() {
   const canvas = useRef<HTMLCanvasElement>(null)
-  const getMap = useFoggedMap()
 
   useEffect(() => {
     let raf = 0
@@ -124,7 +122,7 @@ export const Minimap = memo(function Minimap() {
       ctx.translate(R, R)
       ctx.rotate(yaw)
       ctx.translate(-P.x * k, -P.z * k)
-      ctx.drawImage(getMap(), -MAP_EXTENT * k, -MAP_EXTENT * k, MAP_EXTENT * 2 * k, MAP_EXTENT * 2 * k)
+      ctx.drawImage(foggedMap(s.region), -MAP_EXTENT * k, -MAP_EXTENT * k, MAP_EXTENT * 2 * k, MAP_EXTENT * 2 * k)
       ctx.restore()
 
       // world → minimap screen
@@ -134,7 +132,7 @@ export const Minimap = memo(function Minimap() {
         return { x: R + dx * c0 - dz * s0, y: R + dx * s0 + dz * c0 }
       }
 
-      const region = REGION_RUNTIME[CURRENT_REGION]!
+      const region = regionRT(s.region)
       for (const l of region.landmarks) {
         if (l.kind !== 'npc') continue
         const p = toScreen(l.x, l.z)
@@ -146,7 +144,7 @@ export const Minimap = memo(function Minimap() {
         ctx.strokeStyle = '#b48aa0'
         ctx.stroke()
       }
-      for (const loc of completedLocations(s.quests)) {
+      for (const loc of completedLocations(s.quests, s.region)) {
         const p = toScreen(loc.x, loc.z)
         drawStar(ctx, p.x, p.y, 6, '#f7d774')
       }
@@ -196,7 +194,7 @@ export const Minimap = memo(function Minimap() {
     }
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
-  }, [getMap])
+  }, [])
 
   return <canvas ref={canvas} className="minimap" aria-label="Minimap" />
 })

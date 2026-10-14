@@ -48,6 +48,23 @@ export const runtime = {
   objective: null as THREE.Vector3 | null,
   /** Title-screen flyover. */
   attract: true,
+  /** Ambient world state: real-clock time of day and gentle weather (0..1 blends). */
+  env: {
+    evening: 0,
+    night: 0,
+    rain: 0,
+    rainbow: 0,
+    petals: 0,
+    weather: 'clear' as 'clear' | 'petals' | 'rain' | 'rainbow',
+    hour: 12,
+  },
+  /** Tatan, once he travels with Caca. */
+  companion: {
+    pos: new THREE.Vector3(),
+    yaw: 0,
+    active: false,
+  },
+  objectiveVia: null as string | null,
 }
 
 export function setPlayerPos(x: number, y: number, z: number, yaw?: number) {

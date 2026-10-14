@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { game, useGame, type Presentation } from '../state/store'
 import { NAMES, NOTES } from '../data/story'
 import { KEEPSAKES } from '../data/items'
+import { TOTAL_FRAGMENTS } from '../data/quests'
 import { keepsakeMemory } from '../systems/quests'
 import { openMenu, setAdvanceHandler } from '../systems/input'
 import { audio } from '../systems/audio'
@@ -90,7 +91,7 @@ function Keepsake({ id }: { id: string }) {
         <div className="badge">
           <HeartIcon size={38} />
         </div>
-        <div className="muted">Memory keepsake · {have} of 3 in the meadow</div>
+        <div className="muted">Memory keepsake · {have} of {Object.keys(KEEPSAKES).length} found</div>
         <h2>{k.name}</h2>
         <p className="desc">{k.description}</p>
         <div className="memory">{keepsakeMemory(id)}</div>
@@ -102,9 +103,19 @@ function Keepsake({ id }: { id: string }) {
   )
 }
 
+const CHAPTERS: Partial<Record<string, { n: number; title: string; body: string; next: string }>> = {
+  meadow: { n: 1, title: 'Pink Blossom Meadow', body: 'The meadow is shining again, and the map has found the way to Cuddleberry Village.', next: 'Walk through the Starlight Arch when you’re ready.' },
+  village: { n: 2, title: 'Cuddleberry Village', body: 'You found Tatan! From now on, you travel together.', next: 'Lilac Cottage is yours now — and the forest path is waiting.' },
+  forest: { n: 3, title: 'Whispering Moon Forest', body: 'The forest glows again, and the road to the sea has woken up.', next: 'Head east through the village to Bubblegum Bay.' },
+  bay: { n: 4, title: 'Bubblegum Bay', body: 'The lighthouse shines all the way up to the stars.', next: 'Climb the starlight stairs on the cliff.' },
+}
+
 function ChapterEnd() {
   const keepsakes = useGame((s) => s.keepsakes.length)
   const fragments = useGame((s) => s.fragments)
+  const pawprints = useGame((s) => s.pawprints)
+  const region = useGame((s) => s.region)
+  const ch = CHAPTERS[region] ?? CHAPTERS.meadow!
   useEffect(() => {
     audio.sfx('quest')
     setAdvanceHandler(() => game.dismiss())
@@ -114,17 +125,25 @@ function ChapterEnd() {
     <div className="scrim">
       <div className="chapter panel">
         <StarIcon size={44} />
-        <div className="muted">Chapter 1</div>
-        <h2>Pink Blossom Meadow</h2>
-        <p>The meadow is shining again, and the map has found the way to Cuddleberry Village.</p>
+        <div className="muted">Chapter {ch.n} complete</div>
+        <h2>{ch.title}</h2>
+        <p>{ch.body}</p>
         <div className="stats">
           <div className="stat">
-            <b>{fragments} / 3</b>
+            <b>
+              {fragments} / {TOTAL_FRAGMENTS}
+            </b>
             <span>starlight fragments</span>
           </div>
           <div className="stat">
-            <b>{keepsakes} / 3</b>
+            <b>
+              {keepsakes} / {Object.keys(KEEPSAKES).length}
+            </b>
             <span>keepsakes found</span>
+          </div>
+          <div className="stat">
+            <b>{pawprints}</b>
+            <span>pawprints</span>
           </div>
         </div>
         <div className="row">
@@ -142,8 +161,28 @@ function ChapterEnd() {
           </button>
         </div>
         <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
-          Chapter 2 is still being built. Everything in the meadow is yours to wander in the meantime.
+          {ch.next}
         </p>
+      </div>
+    </div>
+  )
+}
+
+function Banner({ title, subtitle }: { title: string; subtitle: string }) {
+  useEffect(() => {
+    audio.sfx('reveal')
+    setAdvanceHandler(() => game.dismiss())
+    const t = setTimeout(() => game.dismiss(), 3200)
+    return () => {
+      clearTimeout(t)
+      setAdvanceHandler(null)
+    }
+  }, [])
+  return (
+    <div className="banner" onClick={() => game.dismiss()}>
+      <div className="banner-inner">
+        <div className="banner-title">{title}</div>
+        <div className="banner-sub">{subtitle}</div>
       </div>
     </div>
   )
@@ -163,5 +202,7 @@ export function Presentations() {
       return <Keepsake key={key} id={cur.id} />
     case 'chapterEnd':
       return <ChapterEnd key={key} />
+    case 'banner':
+      return <Banner key={key} title={cur.title} subtitle={cur.subtitle} />
   }
 }

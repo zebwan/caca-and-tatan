@@ -1,45 +1,25 @@
 /**
- * Region registry. Each built region provides its scene, physics world,
- * height function, spawn and map painter. Adding Cuddleberry Village later
- * means adding an entry here; gameplay systems don't change.
+ * Region registry. Each region provides its scene, physics world, height
+ * function, entries/exits, map painter, atmosphere and music. Gameplay
+ * systems look everything up from here by the current region id.
  */
-import type { ComponentType } from 'react'
-import type { RegionId, Vec2 } from '../data/types'
-import type { PhysicsWorld } from '../systems/physics'
-import { Meadow } from './meadow/Meadow'
-import { meadowPhysics } from './meadow/physics'
-import { terrainHeight } from './meadow/terrain'
-import { meadowMapImage } from './meadow/mapPainter'
-import { MEADOW } from './meadow/layout'
-
-export interface RegionRuntime {
-  id: RegionId
-  Scene: ComponentType
-  physics: () => PhysicsWorld
-  heightAt: (x: number, z: number) => number
-  spawn: Vec2
-  spawnYaw: number
-  mapImage: () => HTMLCanvasElement
-  /** Map landmarks shown on the minimap (NPCs etc.). */
-  landmarks: { x: number; z: number; kind: 'npc' | 'home' }[]
-}
+import type { RegionId } from '../data/types'
+import type { RegionRuntime } from './regionTypes'
+import { meadowRegion } from './meadow'
+import { villageRegion } from './village'
+import { homeRegion } from './home'
 
 export const REGION_RUNTIME: Partial<Record<RegionId, RegionRuntime>> = {
-  meadow: {
-    id: 'meadow',
-    Scene: Meadow,
-    physics: meadowPhysics,
-    heightAt: terrainHeight,
-    spawn: MEADOW.spawn,
-    spawnYaw: MEADOW.spawnYaw,
-    mapImage: meadowMapImage,
-    landmarks: [
-      { ...MEADOW.npcs.mimi, kind: 'npc' },
-      { ...MEADOW.npcs.biscuit, kind: 'npc' },
-      { ...MEADOW.npcs.pip, kind: 'npc' },
-      { ...MEADOW.cottage, kind: 'home' },
-    ],
-  },
+  meadow: meadowRegion,
+  village: villageRegion,
+  home: homeRegion,
 }
 
-export const CURRENT_REGION: RegionId = 'meadow'
+export function registerRegion(r: RegionRuntime) {
+  REGION_RUNTIME[r.id] = r
+}
+
+export const isBuilt = (id: RegionId) => !!REGION_RUNTIME[id]
+export function regionRT(id: RegionId): RegionRuntime {
+  return REGION_RUNTIME[id] ?? REGION_RUNTIME.meadow!
+}

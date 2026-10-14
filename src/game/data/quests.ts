@@ -1,5 +1,9 @@
 import type { QuestDef } from './types'
 import { MEADOW } from '../world/meadow/layout'
+import { VILLAGE_QUESTS } from './regions/village'
+import { FOREST_QUESTS } from './regions/forest'
+import { BAY_QUESTS } from './regions/bay'
+import { GARDEN_QUESTS } from './regions/garden'
 
 /**
  * Quest definitions. A quest becomes "available" when every quest in
@@ -89,4 +93,9 @@ export const QUESTS: QuestDef[] = [
   },
 ]
 
+QUESTS.push(...VILLAGE_QUESTS, ...FOREST_QUESTS, ...BAY_QUESTS, ...GARDEN_QUESTS)
+
 export const QUEST_BY_ID: Record<string, QuestDef> = Object.fromEntries(QUESTS.map((q) => [q.id, q]))
+
+/** Every starlight fragment in the game. */
+export const TOTAL_FRAGMENTS = QUESTS.reduce((n, q) => n + (q.reward.fragments ?? 0), 0)

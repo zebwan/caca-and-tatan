@@ -22,10 +22,12 @@ interface Props {
   yaw: number
   /** Quest this NPC hands out; shows a floating star while it is available. */
   offers?: string
+  /** Optional side quests get a lavender marker instead of pink. */
+  optional?: boolean
   children?: React.ReactNode
 }
 
-export function Npc({ id, variant, x, z, y, yaw, offers, children }: Props) {
+export function Npc({ id, variant, x, z, y, yaw, offers, optional, children }: Props) {
   const rig = useMemo(() => buildCat(VARIANTS[variant]), [variant])
   const anim = useMemo(() => new CatAnimator(), [])
   const marker = useRef<THREE.Group>(null)
@@ -92,7 +94,7 @@ export function Npc({ id, variant, x, z, y, yaw, offers, children }: Props) {
       <primitive object={rig.root} />
       {showMarker && (
         <group ref={marker} position={[x, y + 2, z]}>
-          <StarShape color="#f27aa6" />
+          <StarShape color={optional ? '#b9a5ee' : '#f27aa6'} />
         </group>
       )}
       {children}

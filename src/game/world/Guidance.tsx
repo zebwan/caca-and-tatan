@@ -4,21 +4,48 @@
  * glowing paw prints toward it when Caca wanders far away.
  */
 import { useEffect, useMemo, useRef } from 'react'
+import { routeExit } from '../systems/route'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { runtime } from '../state/runtime'
 import { game, useGame } from '../state/store'
-import { currentObjective } from '../systems/quests'
+import { currentObjective, objectivePoint } from '../systems/quests'
 import { starGeo } from '../characters/Npc'
 import { toon } from './materials'
 
+/** Resolve the objective marker for the current region (or the exit that leads toward it). */
+export function resolveObjective(heightAt: (x: number, z: number) => number) {
+  const s = game.get()
+  const o = currentObjective(s.quests)
+  runtime.objectiveVia = null
+  if (!o) return null
+  if (o.region === s.region) {
+    const p = objectivePoint(o, s.collected, runtime.player.pos)
+    return new THREE.Vector3(p.x, heightAt(p.x, p.z), p.z)
+  }
+  const exit = routeExit(s.region, o.region, s.quests)
+  if (!exit) return null
+  runtime.objectiveVia = exit.label
+  return new THREE.Vector3(exit.x, heightAt(exit.x, exit.z), exit.z)
+}
+
 export function Guidance({ heightAt }: { heightAt: (x: number, z: number) => number }) {
   const quests = useGame((s) => s.quests)
+  const region = useGame((s) => s.region)
+  const t = useRef(0)
   useEffect(() => {
-    const o = currentObjective(quests)
-    runtime.objective = o ? new THREE.Vector3(o.location.x, heightAt(o.location.x, o.location.z), o.location.z) : null
-  }, [quests, heightAt])
+    runtime.objective = resolveObjective(heightAt)
+  }, [quests, region, heightAt])
+  useFrame((_, dt) => {
+    t.current -= dt
+    if (t.current > 0) return
+    t.current = 0.4
+    const next = resolveObjective(heightAt)
+    if (!next) runtime.objective = null
+    else if (!runtime.objective) runtime.objective = next
+    else runtime.objective.copy(next)
+  })
   return (
     <>
       <Beacon />
@@ -117,15 +144,17 @@ function PawTrail({ heightAt }: { heightAt: (x: number, z: number) => number }) 
     const P = runtime.player
     const blocked = game.inputBlocked() || runtime.cutscene.active
     s.timer -= dt
+    const always = game.get().settings.alwaysTrail
     if (o && !blocked && s.timer <= 0) {
       const d = Math.hypot(o.x - P.pos.x, o.z - P.pos.z)
-      s.timer = 5
-      if (d > 15) {
+      s.timer = always ? 3.2 : 5
+      if (d > (always ? 4.5 : 15)) {
         const dx = (o.x - P.pos.x) / d, dz = (o.z - P.pos.z) / d
         const yaw = Math.atan2(dx, dz)
         s.pts = []
         for (let i = 0; i < PRINTS; i++) {
           const along = 2.2 + i * 0.85
+          if (along > d - 1) break
           const side = (i % 2 ? 1 : -1) * 0.18
           const x = P.pos.x + dx * along + dz * side
           const z = P.pos.z + dz * along - dx * side
@@ -137,7 +166,10 @@ function PawTrail({ heightAt }: { heightAt: (x: number, z: number) => number }) 
     s.t += dt
     for (let i = 0; i < PRINTS; i++) {
       const p = s.pts[i]
-      if (!p) continue
+      if (!p) {
+        m.setColorAt(i, col.setRGB(0, 0, 0))
+        continue
+      }
       const appear = i * 0.12
       const life = s.t - appear
       const a = life < 0 ? 0 : life < 0.3 ? life / 0.3 : Math.max(0, 1 - (life - 1.6) / 1.2)

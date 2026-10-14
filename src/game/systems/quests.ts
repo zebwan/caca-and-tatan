@@ -11,6 +11,8 @@ import type { QuestDef, RegionId, Vec2 } from '../data/types'
 import { game, type QuestProgress } from '../state/store'
 import { bus } from './bus'
 import { saveGame } from '../state/save'
+import { CLOTHING_BY_ID, PAWPRINTS } from '../data/shop'
+import { say } from './dialogue'
 
 export function initialQuests(): Record<string, QuestProgress> {
   const q: Record<string, QuestProgress> = {}
@@ -48,6 +50,11 @@ export function dispatch(event: string) {
       quests[d.id] = { state: 'in_progress', step: 0, progress: 0 }
       changed = true
       bus.emit({ type: 'questStarted', id: d.id })
+      if (d.startGift?.length) {
+        const owned = game.get().owned
+        game.set({ owned: Array.from(new Set([...owned, ...d.startGift])) })
+        game.toast('Housewarming gifts are waiting at Lilac Cottage!', 'gift')
+      }
       continue
     }
     if (st.state !== 'in_progress') continue
@@ -75,8 +82,23 @@ export function dispatch(event: string) {
   saveGame()
 }
 
+export function questPawprints(id: string) {
+  const q = QUEST_BY_ID[id]
+  if (!q) return 0
+  if (q.reward.pawprints !== undefined) return q.reward.pawprints
+  if (!q.main) return PAWPRINTS.optionalQuest
+  return q.steps.some((s) => s.event.startsWith('activate:')) ? PAWPRINTS.chapterEnd : PAWPRINTS.mainQuest
+}
+
+export function addPawprints(n: number, why?: string) {
+  if (!n) return
+  game.set({ pawprints: game.get().pawprints + n })
+  bus.emit({ type: 'pawprints', n, why })
+}
+
 function grantRewards(d: QuestDef) {
   const r = d.reward
+  addPawprints(questPawprints(d.id))
   const s = game.get()
   if (r.fragments) {
     const total = s.fragments + r.fragments
@@ -86,6 +108,10 @@ function grantRewards(d: QuestDef) {
   if (r.accessory) unlockAccessory(r.accessory)
   if (r.keepsake) collectKeepsake(r.keepsake)
   bus.emit({ type: 'questCompleted', id: d.id })
+  if (r.say) {
+    const sayId = r.say
+    setTimeout(() => say(sayId), 1500)
+  }
   if (r.note) {
     const noteId = r.note
     // let the celebration play before the letter appears
@@ -104,7 +130,7 @@ export function unlockAccessory(id: string) {
   const s = game.get()
   if (s.accessories.includes(id)) return
   game.set({ accessories: [...s.accessories, id] })
-  const def = ACCESSORIES.find((a) => a.id === id)
+  const def = ACCESSORIES.find((a) => a.id === id) ?? CLOTHING_BY_ID[id]
   bus.emit({ type: 'accessory', id })
   game.toast(`Unlocked: ${def?.name ?? id} — wear it from the pause menu`, 'gift')
 }
@@ -119,6 +145,7 @@ export function collectKeepsake(id: string) {
   const region = KEEPSAKES[id].region
   const all = Object.values(KEEPSAKES).filter((k) => k.region === region)
   if (region === 'meadow' && all.every((k) => keepsakes.includes(k.id))) unlockAccessory('heartGlasses')
+  if (Object.keys(KEEPSAKES).every((k) => keepsakes.includes(k))) unlockAccessory('loveLocket')
   saveGame()
 }
 
@@ -144,8 +171,10 @@ export interface Objective {
   questId: string
   title: string
   text: string
+  region: RegionId
   location: Vec2
   progress?: { n: number; total: number; label: string }
+  targets?: { prefix: string; points: Vec2[]; ordered?: boolean }
 }
 
 /** The current main objective: the first main quest that is available or in progress. */
@@ -154,7 +183,7 @@ export function currentObjective(quests: Record<string, QuestProgress>): Objecti
     if (!d.main) continue
     const st = quests[d.id]
     if (!st) continue
-    if (st.state === 'available') return { questId: d.id, title: d.title, text: d.startObjective, location: d.startLocation }
+    if (st.state === 'available') return { questId: d.id, title: d.title, text: d.startObjective, location: d.startLocation, region: d.region }
     if (st.state === 'in_progress') {
       const step = d.steps[st.step]
       return {
@@ -162,6 +191,8 @@ export function currentObjective(quests: Record<string, QuestProgress>): Objecti
         title: d.title,
         text: step.objective,
         location: step.location,
+        region: step.region ?? d.region,
+        targets: step.targets,
         progress: step.count ? { n: st.progress, total: step.count, label: step.progressLabel ?? '' } : undefined,
       }
     }
@@ -169,7 +200,23 @@ export function currentObjective(quests: Record<string, QuestProgress>): Objecti
   return null
 }
 
-/** Locations of finished main quests, for "completed" map markers. */
-export function completedLocations(quests: Record<string, QuestProgress>): Vec2[] {
-  return QUESTS.filter((d) => d.main && quests[d.id]?.state === 'completed').map((d) => d.steps[d.steps.length - 1].location)
+/** Where the objective marker should go: the step's own spot, or the nearest/next target not yet done. */
+export function objectivePoint(o: Objective, collected: string[], from: { x: number; z: number }): Vec2 {
+  const t = o.targets
+  if (!t) return o.location
+  const open = t.points.map((p, i) => ({ p, i })).filter(({ i }) => !collected.includes(`${t.prefix}:${i}`))
+  if (!open.length) return o.location
+  if (t.ordered) return open[0].p
+  open.sort((a, b) => Math.hypot(a.p.x - from.x, a.p.z - from.z) - Math.hypot(b.p.x - from.x, b.p.z - from.z))
+  return open[0].p
+}
+
+/** Locations of finished main quests in a region, for "completed" map markers. */
+export function completedLocations(quests: Record<string, QuestProgress>, region: RegionId): Vec2[] {
+  return QUESTS.filter((d) => d.main && d.region === region && quests[d.id]?.state === 'completed').map((d) => d.steps[d.steps.length - 1].location)
+}
+
+/** Optional quests currently on the go (for the journal). */
+export function activeOptional(quests: Record<string, QuestProgress>) {
+  return QUESTS.filter((d) => !d.main && (quests[d.id]?.state === 'in_progress'))
 }

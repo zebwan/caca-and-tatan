@@ -7,12 +7,15 @@ import { audio } from './game/systems/audio'
 import { bus } from './game/systems/bus'
 import { dispatch } from './game/systems/quests'
 import { input } from './game/systems/input'
-import { QUEST_BY_ID } from './game/data/quests'
+import { QUEST_BY_ID, TOTAL_FRAGMENTS } from './game/data/quests'
 import { HUD, Toasts } from './game/ui/HUD'
 import { Presentations } from './game/ui/Presentations'
 import { PauseMenu } from './game/ui/PauseMenu'
 import { WorldMap } from './game/ui/WorldMap'
 import { IntroCards, TitleScreen } from './game/ui/TitleScreen'
+import { CatCreator } from './game/ui/CatCreator'
+import { Shop, Decorate } from './game/ui/Shop'
+import { startIntro } from './game/flow'
 
 /** Turns game events into toasts and sounds. */
 function useGameEffects() {
@@ -40,8 +43,11 @@ function useGameEffects() {
           break
         }
         case 'fragment':
-          game.toast(`Starlight fragment ${e.total} of 3`, 'star')
+          game.toast(`Starlight fragment ${e.total} of ${TOTAL_FRAGMENTS}`, "star")
           setTimeout(() => audio.sfx('fragment'), 350)
+          break
+        case 'pawprints':
+          if (e.n > 0 && e.why !== 'coin') game.toast(`+${e.n} pawprints${e.why ? ` · ${e.why}` : ''}`, 'paw')
           break
         case 'splash':
           if (Date.now() - lastSplash > 5000) game.toast('Caca doesn’t like wet paws! Try the bridge or jump on the stones.', 'paw')
@@ -55,6 +61,9 @@ function useGameEffects() {
 export default function App() {
   const phase = useGame((s) => s.phase)
   const menu = useGame((s) => s.menu)
+  const menuArg = useGame((s) => s.menuArg)
+  const fade = useGame((s) => s.fade)
+  const textSize = useGame((s) => s.settings.textSize)
   useGameEffects()
 
   useEffect(() => {
@@ -77,10 +86,11 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app">
+    <div className="app" style={{ ['--ts' as string]: String(textSize) }}>
       <GameScene />
       <div className="ui">
         {phase === 'title' && <TitleScreen />}
+        {phase === 'create' && <CatCreator who="caca" startMode onDone={startIntro} />}
         {phase === 'intro' && <IntroCards />}
         {phase === 'playing' && (
           <>
@@ -88,9 +98,18 @@ export default function App() {
             <Presentations />
             {menu === 'pause' && <PauseMenu />}
             {menu === 'map' && <WorldMap />}
+            {menu === 'shop' && <Shop kind="clothes" />}
+            {menu === 'furniture' && <Shop kind="furniture" />}
+            {menu === 'decorate' && <Decorate slot={menuArg ?? 'bed'} />}
+            {menu === 'style' && (
+              <div className="scrim">
+                <CatCreator who={menuArg === 'tatan' ? 'tatan' : 'caca'} onDone={() => game.set({ menu: 'pause' })} onCancel={() => game.set({ menu: 'pause' })} />
+              </div>
+            )}
           </>
         )}
         <Toasts />
+        <div className={`fade ${fade ? 'on' : ''}`} />
       </div>
     </div>
   )

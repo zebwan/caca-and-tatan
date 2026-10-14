@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 import type { DialogueLine, QuestState, RegionId } from '../data/types'
+import { DEFAULT_LOOKS, type CatLook } from '../characters/look'
+import { DEFAULT_HOME, FREE_ITEMS, type HomeSlot } from '../data/shop'
 
-export type Phase = 'title' | 'intro' | 'playing'
-export type Menu = null | 'pause' | 'map'
+export type Phase = 'title' | 'create' | 'intro' | 'playing'
+export type Menu = null | 'pause' | 'map' | 'shop' | 'furniture' | 'decorate' | 'style'
 
 export type Presentation = (
   | { kind: 'dialogue'; lines: DialogueLine[]; onDone?: () => void }
   | { kind: 'note'; noteId: string; onDone?: () => void }
   | { kind: 'keepsake'; id: string }
   | { kind: 'chapterEnd' }
+  | { kind: 'banner'; title: string; subtitle: string }
 ) & { uid?: number }
 
 let presentationUid = 0
@@ -32,7 +35,26 @@ export interface Settings {
   muted: boolean
   sensitivity: number
   invertY: boolean
+  /** Follow the real clock for day/night, or keep it daytime. */
+  clock: 'real' | 'day'
+  /** UI text scale. */
+  textSize: 1 | 1.15 | 1.3
+  /** Keep the glowing paw trail visible all the time. */
+  alwaysTrail: boolean
+  /** Run by holding Shift, or toggle it on/off. */
+  runMode: 'hold' | 'toggle'
+  /** Gentle weather (petal showers, light rain). */
+  weather: boolean
 }
+
+export interface Equipped {
+  bow: string
+  head: string | null
+  face: string | null
+  back: string | null
+  neck: string | null
+}
+export const DEFAULT_EQUIPPED: Equipped = { bow: 'pinkBow', head: null, face: null, back: null, neck: null }
 
 export interface GameState {
   phase: Phase
@@ -46,7 +68,21 @@ export interface GameState {
   keepsakes: string[]
   notes: string[]
   accessories: string[]
-  equipped: { head: string | null; face: string | null }
+  equipped: Equipped
+  equippedTatan: Equipped
+  looks: { caca: CatLook; tatan: CatLook }
+  pawprints: number
+  /** Bought shop items (clothes + furniture). */
+  owned: string[]
+  home: Partial<Record<HomeSlot, string>>
+  /** Which shop / home slot / cat a menu is about. */
+  menuArg: string | null
+  /** Region Caca is currently in. */
+  region: RegionId
+  /** Screen fade for region travel. */
+  fade: boolean
+  /** A region's title banner shown on first arrival. */
+  banner: string | null
   regions: RegionId[]
   collected: string[]
   flags: Record<string, boolean>
@@ -67,17 +103,28 @@ export const DEFAULT_SETTINGS: Settings = {
   muted: false,
   sensitivity: 1,
   invertY: false,
+  clock: 'real',
+  textSize: 1,
+  alwaysTrail: false,
+  runMode: 'hold',
+  weather: true,
 }
 
-export function freshProgress(): Omit<GameState, 'phase' | 'introStep' | 'cutscene' | 'menu' | 'settings' | 'prompt' | 'hint' | 'toasts'> {
+export function freshProgress(): Omit<GameState, 'phase' | 'introStep' | 'cutscene' | 'menu' | 'menuArg' | 'settings' | 'prompt' | 'hint' | 'toasts' | 'fade' | 'banner'> {
   return {
     queue: [],
     quests: {},
     fragments: 0,
     keepsakes: [],
     notes: [],
-    accessories: ['pinkBow'],
-    equipped: { head: null, face: null },
+    accessories: ['pinkBow', 'blueScarf'],
+    equipped: { ...DEFAULT_EQUIPPED },
+    equippedTatan: { ...DEFAULT_EQUIPPED, bow: 'none', neck: 'blueScarf' },
+    looks: { caca: { ...DEFAULT_LOOKS.caca }, tatan: { ...DEFAULT_LOOKS.tatan } },
+    pawprints: 0,
+    owned: [...FREE_ITEMS],
+    home: { ...DEFAULT_HOME },
+    region: 'meadow',
     regions: ['meadow'],
     collected: [],
     flags: {},
@@ -95,6 +142,9 @@ export const useGame = create<GameState>(() => ({
   prompt: null,
   hint: null,
   toasts: [],
+  fade: false,
+  banner: null,
+  menuArg: null,
   ...freshProgress(),
 }))
 
@@ -132,6 +182,6 @@ export const game = {
   /** Player input is blocked by menus, dialogue, notes and cutscenes. */
   inputBlocked() {
     const s = useGame.getState()
-    return s.phase !== 'playing' || s.menu !== null || s.queue.length > 0 || s.cutscene
+    return s.phase !== 'playing' || s.menu !== null || s.queue.length > 0 || s.cutscene || s.fade
   },
 }

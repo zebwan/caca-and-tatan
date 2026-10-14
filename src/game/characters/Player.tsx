@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { buildCat, disposeRig, VARIANTS } from './catBuilder'
+import { applyOutfit, buildCat, disposeRig, VARIANTS } from './catBuilder'
+import { lookKey } from './look'
 import { CatAnimator } from './catAnimation'
 import { runtime } from '../state/runtime'
 import { game, useGame } from '../state/store'
@@ -26,16 +27,15 @@ export function dampAngle(cur: number, target: number, rate: number, dt: number)
 }
 
 export function Player() {
-  const rig = useMemo(() => buildCat(VARIANTS.caca), [])
+  const look = useGame((s) => s.looks.caca)
+  const lk = lookKey(look)
+  const rig = useMemo(() => buildCat(VARIANTS.caca, look), [lk]) // eslint-disable-line react-hooks/exhaustive-deps
   const anim = useMemo(() => new CatAnimator(), [])
   const st = useRef({ coyote: 0, safeTimer: 0, stepCooldown: 0, visY: 0, exploreTimer: 0, waterTimer: 0, splashCooldown: 0 })
   const equipped = useGame((s) => s.equipped)
 
   useEffect(() => () => disposeRig(rig), [rig])
-  useEffect(() => {
-    rig.crown.visible = equipped.head === 'flowerCrown'
-    rig.heartGlasses.visible = equipped.face === 'heartGlasses'
-  }, [equipped, rig])
+  useEffect(() => applyOutfit(rig, equipped), [equipped, rig])
 
   useEffect(
     () =>

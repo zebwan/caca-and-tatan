@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { MEADOW } from './layout'
 import { terrainHeight, WATER_LEVEL } from './terrain'
 import { bridgeDeckY } from './physics'
-import { GEO, toon } from '../materials'
+import { GEO, lampMaterial, toon } from '../materials'
 
 type V3 = [number, number, number]
 
@@ -253,7 +253,7 @@ function Lamps() {
           <group key={i} position={[l.x, y, l.z]}>
             <Cyl s={[0.08, 1.9, 0.08]} p={[0, 0.95, 0]} c="#f0e6f4" />
             <Cyl s={[0.18, 0.1, 0.18]} p={[0, 0.05, 0]} c="#e5d9e8" />
-            <Ball s={[0.22, 0.26, 0.22]} p={[0, 2.05, 0]} c="#fff4d6" e="#ffd9a8" shadow={false} />
+            <mesh geometry={GEO.sphere} material={lampMaterial()} scale={[0.22, 0.26, 0.22]} position={[0, 2.05, 0]} />
             <mesh geometry={GEO.cone} material={toon('#f392b4')} scale={[0.3, 0.22, 0.3]} position={[0, 2.38, 0]} castShadow />
           </group>
         )

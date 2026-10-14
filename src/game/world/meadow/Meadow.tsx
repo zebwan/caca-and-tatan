@@ -2,11 +2,15 @@ import { MEADOW } from './layout'
 import { terrainHeight } from './terrain'
 import { Terrain } from './TerrainMesh'
 import { Water } from './Water'
-import { Vegetation } from './Vegetation'
+import { Vegetation } from '../common/Vegetation'
+import { meadowScatter } from './scatter'
+import { Fireflies } from '../Atmosphere'
 import { MeadowProps } from './Props'
 import { MeadowQuestObjects, Teddy } from './QuestObjects'
 import { Npc } from '../../characters/Npc'
 import { useGame } from '../../state/store'
+import { Coins } from '../common/Coins'
+import { meadowPhysics } from './physics'
 
 const H = (p: { x: number; z: number }) => terrainHeight(p.x, p.z)
 
@@ -34,10 +38,12 @@ export function Meadow() {
     <group>
       <Terrain />
       <Water />
-      <Vegetation />
+      <Vegetation scatter={meadowScatter()} />
+      <Fireflies />
       <MeadowProps />
       <MeadowQuestObjects />
       <MeadowNpcs />
+      <Coins region="meadow" world={meadowPhysics()} count={13} seed={31} extra={[{ x: -42.1, z: -29.8 + 1.0, y: terrainHeight(-42.1, -28.8) + 2.95 }]} />
     </group>
   )
 }

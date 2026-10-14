@@ -5,6 +5,31 @@
  */
 import type { Settings } from '../state/store'
 
+export type ThemeId = 'meadow' | 'village' | 'forest' | 'bay' | 'garden' | 'reunion'
+export type AmbienceId = 'meadow' | 'village' | 'forest' | 'bay' | 'garden'
+
+interface Theme {
+  bpm: number
+  chords: number[][]
+  scale: number[]
+  lead: 'box' | 'pluck' | 'bell'
+  density: number
+  pad: OscillatorType
+  padGain: number
+  bass: number
+  strum?: boolean
+  arp?: boolean
+}
+
+const THEMES: Record<ThemeId, Theme> = {
+  meadow: { bpm: 74, chords: [[53, 57, 60, 64], [57, 60, 64, 67], [58, 62, 65, 69], [60, 64, 67, 69]], scale: [77, 79, 81, 84, 86, 89, 91, 93], lead: 'box', density: 0.55, pad: 'triangle', padGain: 0.022, bass: 0.06 },
+  village: { bpm: 92, chords: [[48, 55, 60, 64], [43, 50, 55, 59], [45, 52, 57, 60], [41, 48, 53, 57]], scale: [72, 74, 76, 79, 81, 84, 86, 88], lead: 'pluck', density: 0.62, pad: 'triangle', padGain: 0.016, bass: 0.055, strum: true },
+  forest: { bpm: 58, chords: [[45, 52, 55, 60], [41, 48, 52, 57], [48, 55, 59, 64], [43, 50, 55, 59]], scale: [69, 72, 74, 76, 79, 81, 84], lead: 'bell', density: 0.3, pad: 'sine', padGain: 0.03, bass: 0.05 },
+  bay: { bpm: 100, chords: [[50, 57, 62, 66], [47, 54, 59, 62], [43, 50, 55, 59], [45, 52, 57, 61]], scale: [74, 76, 78, 81, 83, 86, 88, 90], lead: 'pluck', density: 0.7, pad: 'triangle', padGain: 0.014, bass: 0.055, strum: true },
+  garden: { bpm: 62, chords: [[41, 48, 53, 57], [40, 47, 52, 55], [38, 45, 50, 53], [46, 53, 57, 62]], scale: [77, 79, 81, 84, 86, 89], lead: 'bell', density: 0.35, pad: 'sine', padGain: 0.03, bass: 0.045, arp: true },
+  reunion: { bpm: 66, chords: [[41, 48, 53, 57], [40, 48, 52, 55], [38, 45, 50, 53], [46, 50, 53, 58]], scale: [77, 81, 84, 86, 89, 93], lead: 'box', density: 0.5, pad: 'triangle', padGain: 0.034, bass: 0.06, arp: true },
+}
+
 export type Sfx =
   | 'click' | 'map' | 'blip' | 'step' | 'jump' | 'land' | 'chime' | 'fragment' | 'quest'
   | 'note' | 'splash' | 'tile' | 'wrong' | 'meow' | 'sparkle' | 'reveal' | 'whoosh' | 'start'
@@ -236,49 +261,92 @@ class AudioEngine {
   }
 
   // ── ambience ────────────────────────────────────────────────────────────────
+  private windGain: GainNode | null = null
+  private waveGain: GainNode | null = null
+  private ambience: AmbienceId = 'meadow'
+
+  private loopNoise(type: BiquadFilterType, freq: number, q = 0.7) {
+    const ctx = this.ctx!
+    const src = ctx.createBufferSource()
+    src.buffer = this.noiseBuf
+    src.loop = true
+    const f = ctx.createBiquadFilter()
+    f.type = type
+    f.frequency.value = freq
+    f.Q.value = q
+    const g = ctx.createGain()
+    g.gain.value = 0
+    src.connect(f).connect(g).connect(this.ambBus)
+    src.start()
+    return g
+  }
+
   private startAmbient() {
     const ctx = this.ctx!
-    // wind
-    const wind = ctx.createBufferSource()
-    wind.buffer = this.noiseBuf
-    wind.loop = true
-    const wf = ctx.createBiquadFilter()
-    wf.type = 'lowpass'
-    wf.frequency.value = 420
-    const wg = ctx.createGain()
-    wg.gain.value = 0.022
+    this.windGain = this.loopNoise('lowpass', 420)
+    this.waterGain = this.loopNoise('bandpass', 1500)
+    this.waveGain = this.loopNoise('lowpass', 650)
+    this.rainGain = this.loopNoise('highpass', 2600, 0.5)
+    // slow swell on the waves
     const lfo = ctx.createOscillator()
-    lfo.frequency.value = 0.07
-    const lfoG = ctx.createGain()
-    lfoG.gain.value = 0.012
-    lfo.connect(lfoG).connect(wg.gain)
-    wind.connect(wf).connect(wg).connect(this.ambBus)
-    wind.start()
+    lfo.frequency.value = 0.11
+    const lg = ctx.createGain()
+    lg.gain.value = 0
+    lfo.connect(lg).connect(this.waveGain.gain)
     lfo.start()
-    // water babble, volume set by proximity
-    const water = ctx.createBufferSource()
-    water.buffer = this.noiseBuf
-    water.loop = true
-    const bf = ctx.createBiquadFilter()
-    bf.type = 'bandpass'
-    bf.frequency.value = 1500
-    bf.Q.value = 0.7
-    this.waterGain = ctx.createGain()
-    this.waterGain.gain.value = 0
-    water.connect(bf).connect(this.waterGain).connect(this.ambBus)
-    water.start()
-    // birds
-    const chirp = () => {
-      if (this.ctx && this.ctx.state === 'running') {
-        const t = this.ctx.currentTime + 0.05
-        const base = 2300 + Math.random() * 1400
-        const pan = Math.random() * 1.6 - 0.8
-        const n = 2 + Math.floor(Math.random() * 3)
-        for (let i = 0; i < n; i++) this.tone(base, t + i * 0.11, 0.08, { glide: base * 1.35, gain: 0.012, dest: this.ambBus, pan })
-      }
-      window.setTimeout(chirp, 2500 + Math.random() * 6000)
+    this.waveLfo = lg
+    this.setAmbience(this.ambience)
+    const tick = () => {
+      if (this.ctx && this.ctx.state === 'running') this.ambientEvent()
+      window.setTimeout(tick, 1800 + Math.random() * 4200)
     }
-    chirp()
+    tick()
+  }
+  private waveLfo: GainNode | null = null
+  private rainGain: GainNode | null = null
+
+  /** 0..1 rain loudness. */
+  setRain(v: number) {
+    if (!this.ctx || !this.rainGain) return
+    this.rainGain.gain.setTargetAtTime(v * 0.035, this.ctx.currentTime, 0.8)
+  }
+
+  setAmbience(id: AmbienceId) {
+    this.ambience = id
+    if (!this.ctx || !this.windGain || !this.waveGain || !this.waveLfo) return
+    const t = this.ctx.currentTime
+    const wind = { meadow: 0.022, village: 0.014, forest: 0.012, bay: 0.016, garden: 0.03 }[id]
+    this.windGain.gain.setTargetAtTime(wind, t, 1)
+    this.waveGain.gain.setTargetAtTime(id === 'bay' ? 0.05 : 0, t, 1)
+    this.waveLfo.gain.setTargetAtTime(id === 'bay' ? 0.035 : 0, t, 1)
+  }
+
+  private ambientEvent() {
+    const t = this.ctx!.currentTime + 0.05
+    const pan = Math.random() * 1.6 - 0.8
+    const id = this.ambience
+    if (id === 'meadow' || id === 'village' || (id === 'bay' && Math.random() < 0.3)) {
+      const base = 2300 + Math.random() * 1400
+      const n = 2 + Math.floor(Math.random() * 3)
+      for (let i = 0; i < n; i++) this.tone(base, t + i * 0.11, 0.08, { glide: base * 1.35, gain: 0.012, dest: this.ambBus, pan })
+    }
+    if (id === 'bay' && Math.random() < 0.6) {
+      for (let i = 0; i < 2; i++) this.tone(1250, t + i * 0.32, 0.26, { glide: 880, gain: 0.012, type: 'triangle', dest: this.ambBus, pan })
+    }
+    if (id === 'forest') {
+      for (let k = 0; k < 3; k++) {
+        const ct = t + k * 0.6 + Math.random() * 0.2
+        for (let i = 0; i < 3; i++) this.tone(4300 + Math.random() * 300, ct + i * 0.05, 0.03, { gain: 0.006, dest: this.ambBus, pan: Math.random() * 1.6 - 0.8 })
+      }
+      if (Math.random() < 0.25) {
+        this.tone(392, t + 0.4, 0.35, { glide: 370, gain: 0.03, dest: this.ambBus, pan, wet: 0.5 })
+        this.tone(392, t + 0.9, 0.5, { glide: 360, gain: 0.025, dest: this.ambBus, pan, wet: 0.5 })
+      }
+    }
+    if (id === 'garden') {
+      const notes = [84, 86, 89, 91, 93, 96]
+      for (let i = 0; i < 2; i++) this.tone(midi(notes[Math.floor(Math.random() * notes.length)]), t + i * 0.18, 1.6, { gain: 0.012, dest: this.ambBus, pan, wet: 0.8 })
+    }
   }
 
   /** 0..1 how close Caca is to running water. */
@@ -288,6 +356,14 @@ class AudioEngine {
   }
 
   // ── music ───────────────────────────────────────────────────────────────────
+  private theme: ThemeId = 'meadow'
+  private pendingTheme: ThemeId | null = null
+
+  setTheme(id: ThemeId) {
+    if (id === this.theme && !this.pendingTheme) return
+    this.pendingTheme = id
+  }
+
   startMusic() {
     if (!this.ctx || this.musicOn) return
     this.musicOn = true
@@ -305,62 +381,72 @@ class AudioEngine {
   private schedule() {
     const ctx = this.ctx
     if (!ctx || !this.musicOn) return
-    const beat = 60 / 74
     while (this.nextBarTime < ctx.currentTime + 0.6) {
-      this.playBar(this.bar, this.nextBarTime, beat)
+      if (this.pendingTheme && this.bar % 2 === 0) {
+        this.theme = this.pendingTheme
+        this.pendingTheme = null
+        this.bar = 0
+      }
+      const th = THEMES[this.theme]
+      const beat = 60 / th.bpm
+      this.playBar(th, this.bar, this.nextBarTime, beat)
       this.nextBarTime += beat * 4
       this.bar++
     }
   }
 
-  private playBar(bar: number, t: number, beat: number) {
-    // Fmaj7 · Am7 · B♭maj7 · C6  (midi roots 53, 57, 58, 60)
-    const chords = [
-      [53, 57, 60, 64],
-      [57, 60, 64, 67],
-      [58, 62, 65, 69],
-      [60, 64, 67, 69],
-    ]
-    const ci = bar % 4
-    const chord = chords[ci]
-    // soft pad
-    for (const n of chord.slice(0, 3)) {
-      this.tone(midi(n), t, beat * 4.4, { type: 'triangle', gain: 0.022, attack: 0.9, dest: this.musicBus })
+  private playBar(th: Theme, bar: number, t: number, beat: number) {
+    const ci = bar % th.chords.length
+    const chord = th.chords[ci]
+    const bus = this.musicBus
+    for (const n of chord.slice(0, 3)) this.tone(midi(n), t, beat * 4.4, { type: th.pad, gain: th.padGain, attack: 0.9, dest: bus })
+    this.tone(midi(chord[0] - 12), t, beat * 1.8, { gain: th.bass, attack: 0.03, dest: bus })
+    this.tone(midi(chord[0] - 12), t + beat * 2, beat * 1.8, { gain: th.bass * 0.7, attack: 0.03, dest: bus })
+    if (th.strum) {
+      for (const b of [0, 2]) chord.forEach((n, i) => this.tone(midi(n + 12), t + b * beat + i * 0.028, 0.5, { type: 'triangle', gain: 0.016, dest: bus }))
     }
-    // bass
-    this.tone(midi(chord[0] - 12), t, beat * 1.8, { gain: 0.06, attack: 0.03, dest: this.musicBus })
-    this.tone(midi(chord[0] - 12), t + beat * 2, beat * 1.8, { gain: 0.04, attack: 0.03, dest: this.musicBus })
-
-    // music box melody: a 4-bar motif played twice, then re-written
-    if (bar % 8 === 0) this.motif = this.writeMotif()
-    const line = this.motif[ci]
+    if (th.arp) {
+      for (let i = 0; i < 8; i++) this.tone(midi(chord[(i % 3) + 1] + 12), t + i * (beat / 2), 1.2, { gain: 0.012, dest: bus, wet: 0.4 })
+    }
+    if (bar % 8 === 0 || !this.motif.length) this.motif = this.writeMotif(th)
+    const line = this.motif[ci % this.motif.length]
     const variation = bar % 8 >= 4
     line.forEach((n, i) => {
       if (n === null) return
       const note = variation && i === line.length - 1 ? n + (Math.random() < 0.5 ? 2 : -3) : n
       const at = t + i * (beat / 2)
-      this.tone(midi(note), at, 1.4, { gain: 0.035, dest: this.musicBus })
-      this.tone(midi(note) * 2, at, 0.5, { gain: 0.008, dest: this.musicBus })
+      if (th.lead === 'pluck') {
+        this.tone(midi(note), at, 0.55, { type: 'triangle', gain: 0.04, dest: bus })
+        this.tone(midi(note) * 2, at, 0.2, { gain: 0.008, dest: bus })
+      } else if (th.lead === 'bell') {
+        this.tone(midi(note), at, 2.2, { gain: 0.03, dest: bus, wet: 0.5 })
+        this.tone(midi(note) * 2.01, at, 1.0, { gain: 0.008, dest: bus, wet: 0.5 })
+      } else {
+        this.tone(midi(note), at, 1.4, { gain: 0.035, dest: bus })
+        this.tone(midi(note) * 2, at, 0.5, { gain: 0.008, dest: bus })
+      }
     })
   }
 
-  private writeMotif() {
-    const scale = [77, 79, 81, 84, 86, 89, 91, 93] // F major pentatonic, upper register
-    const chordTones = [[77, 81, 84, 88], [81, 84, 88, 91], [82, 86, 89, 93], [84, 88, 91, 93]]
+  private writeMotif(th: Theme) {
+    const scale = th.scale
     const out: (number | null)[][] = []
-    let idx = 2
-    for (let b = 0; b < 4; b++) {
+    let idx = Math.floor(scale.length / 2)
+    for (let b = 0; b < th.chords.length; b++) {
+      const tones = th.chords[b].map((n) => {
+        let m = n
+        while (m < scale[0] - 1) m += 12
+        return m
+      })
       const bar: (number | null)[] = []
       for (let s = 0; s < 8; s++) {
         const strong = s % 4 === 0
-        if (!strong && Math.random() < 0.45) {
+        if (!strong && Math.random() > th.density) {
           bar.push(null)
           continue
         }
-        if (strong) {
-          const ct = chordTones[b]
-          bar.push(ct[Math.floor(Math.random() * ct.length)])
-        } else {
+        if (strong) bar.push(tones[Math.floor(Math.random() * tones.length)])
+        else {
           idx = Math.max(0, Math.min(scale.length - 1, idx + Math.floor(Math.random() * 3) - 1))
           bar.push(scale[idx])
         }

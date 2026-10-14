@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { game, useGame, type Settings } from '../state/store'
-import { saveGame, saveSettings } from '../state/save'
+import { saveSettings } from '../state/save'
 import { closeMenu } from '../systems/input'
 import { audio } from '../systems/audio'
 import { showNote } from '../systems/quests'
 import { NOTES } from '../data/story'
 import { ACCESSORIES, KEEPSAKES } from '../data/items'
+import { ALL_CLOTHES, type ClothingItem } from '../data/shop'
+import { wear } from './Shop'
 import { newGame, quitToTitle, returnToSafeSpot } from '../flow'
 import { GiftIcon, HeartIcon, StarIcon } from './icons'
 
@@ -71,40 +73,77 @@ function Journal() {
 }
 
 function Wardrobe() {
-  const unlocked = useGame((s) => s.accessories)
-  const equipped = useGame((s) => s.equipped)
-  const toggle = (id: string, slot: 'head' | 'face') => {
-    const cur = game.get().equipped
-    game.set({ equipped: { ...cur, [slot]: cur[slot] === id ? null : id } })
-    audio.sfx('click')
-    saveGame()
-  }
+  const joined = useGame((st) => !!st.flags.tatanJoined)
+  const [who, setWho] = useState<'caca' | 'tatan'>('caca')
+  const accessories = useGame((st) => st.accessories)
+  const owned = useGame((st) => st.owned)
+  const outfit = useGame((st) => (who === 'caca' ? st.equipped : st.equippedTatan))
+  const have = ALL_CLOTHES.filter((c) => accessories.includes(c.id) || owned.includes(c.id))
+  const locked = ACCESSORIES.filter((a) => !accessories.includes(a.id))
+  const slots: { id: ClothingItem['slot']; name: string }[] = [
+    { id: 'bow', name: 'Bow' },
+    { id: 'head', name: 'Head' },
+    { id: 'face', name: 'Face' },
+    { id: 'neck', name: 'Neck' },
+    { id: 'back', name: 'Back' },
+  ]
   return (
     <>
       <h3>Wardrobe</h3>
-      <div className="list">
-        {ACCESSORIES.map((a) => {
-          const have = unlocked.includes(a.id)
-          const always = a.id === 'pinkBow'
-          const slot = a.slot === 'face' ? 'face' : 'head'
-          const on = always || equipped[slot] === a.id
-          return (
-            <div key={a.id} className={`item ${have ? '' : 'locked'}`}>
-              <GiftIcon color={have ? '#f27aa6' : '#cdbfc7'} />
-              <div className="grow">
-                <div className="name">{a.name}</div>
-                <div className="sub">{have ? a.description : a.hint}</div>
-              </div>
-              {have && !always && (a.slot === 'head' || a.slot === 'face') && (
-                <button className={`btn small ${on ? '' : 'soft'}`} onClick={() => toggle(a.id, slot)}>
-                  {on ? 'Wearing' : 'Wear'}
-                </button>
-              )}
-              {always && <span className="muted">Always on</span>}
-            </div>
-          )
-        })}
+      <div className="row" style={{ justifyContent: 'flex-start', marginBottom: 12 }}>
+        <button className={`chip ${who === 'caca' ? 'on' : ''}`} onClick={() => setWho('caca')}>
+          Caca
+        </button>
+        {joined && (
+          <button className={`chip ${who === 'tatan' ? 'on' : ''}`} onClick={() => setWho('tatan')}>
+            Tatan
+          </button>
+        )}
+        <button className="btn small soft" onClick={() => game.set({ menu: 'style', menuArg: who })}>
+          Change {who === 'caca' ? 'Caca' : 'Tatan'}’s look
+        </button>
       </div>
+      {slots.map((sl) => {
+        const items = have.filter((c) => c.slot === sl.id)
+        if (!items.length) return null
+        const current = sl.id === 'bow' ? outfit.bow : outfit[sl.id]
+        return (
+          <div key={sl.id} className="wardrobe-slot">
+            <div className="muted">{sl.name}</div>
+            <div className="chips">
+              {sl.id !== 'bow' || who === 'tatan' ? (
+                <button className={`chip ${!current || current === 'none' ? 'on' : ''}`} onClick={() => wear(who, null, sl.id)}>
+                  Nothing
+                </button>
+              ) : null}
+              {items.map((c) => (
+                <button key={c.id} className={`chip ${current === c.id ? 'on' : ''}`} onClick={() => wear(who, c, sl.id)}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+      {locked.length > 0 && (
+        <>
+          <h3 style={{ marginTop: 18 }}>Still to find</h3>
+          <div className="list">
+            {locked.map((a) => (
+              <div key={a.id} className="item locked">
+                <GiftIcon color="#cdbfc7" />
+                <div className="grow">
+                  <div className="name">{a.name}</div>
+                  <div className="sub">{a.hint}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <p className="muted" style={{ marginTop: 14 }}>
+        More clothes are sold at Ribbon &amp; Bell in Cuddleberry Village.
+      </p>
     </>
   )
 }
@@ -140,15 +179,32 @@ export function SettingsPanel() {
       <h3 style={{ marginTop: 18 }}>Camera</h3>
       <Slider label="Look sensitivity" value={st.sensitivity} min={0.3} max={2} step={0.1} onChange={(v) => updateSettings({ sensitivity: v })} fmt={(v) => v.toFixed(1)} />
       <Toggle label="Invert up/down" on={st.invertY} onChange={(v) => updateSettings({ invertY: v })} />
+      <h3 style={{ marginTop: 18 }}>World</h3>
+      <Toggle label="Day and night follow my clock" on={st.clock === 'real'} onChange={(v) => updateSettings({ clock: v ? 'real' : 'day' })} />
+      <Toggle label="Gentle weather" on={st.weather} onChange={(v) => updateSettings({ weather: v })} />
+      <h3 style={{ marginTop: 18 }}>Comfort</h3>
+      <div className="toggle">
+        <span>Text size</span>
+        <div className="chips">
+          {([1, 1.15, 1.3] as const).map((v, i) => (
+            <button key={v} className={`chip ${st.textSize === v ? 'on' : ''}`} onClick={() => updateSettings({ textSize: v })}>
+              {['Normal', 'Bigger', 'Biggest'][i]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Toggle label="Always show the paw-print trail" on={st.alwaysTrail} onChange={(v) => updateSettings({ alwaysTrail: v })} />
+      <Toggle label="Shift toggles running (instead of holding)" on={st.runMode === 'toggle'} onChange={(v) => updateSettings({ runMode: v ? 'toggle' : 'hold' })} />
       <p className="muted" style={{ marginTop: 16 }}>
-        Controls: WASD or arrows to move · mouse to look · Space to jump · Shift to run · E to interact · M for the map · Esc to pause. Scroll to zoom the camera.
+        Controls: WASD or arrows to move · mouse to look · Space to jump · Shift to run · E to interact · C to cuddle Tatan · M for the map · Esc to pause. Scroll to zoom the camera.
       </p>
     </>
   )
 }
 
 export function PauseMenu() {
-  const [tab, setTab] = useState<Tab>('journal')
+  const arg = useGame((st) => st.menuArg)
+  const [tab, setTab] = useState<Tab>(arg === 'wardrobe' ? 'wardrobe' : arg === 'settings' ? 'settings' : 'journal')
   const [confirm, setConfirm] = useState<null | 'new'>(null)
   return (
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && closeMenu()}>
@@ -165,7 +221,7 @@ export function PauseMenu() {
           ))}
           <div className="spacer" />
           <button className="tab" onClick={returnToSafeSpot} title="Use this if Caca is ever stuck">
-            Back to the cherry tree
+            Back to the entrance
           </button>
           <button className="tab" onClick={quitToTitle}>
             Save &amp; title screen

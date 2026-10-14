@@ -4,14 +4,13 @@
  * Personal memories and the final message live in personal.ts.
  */
 import type { DialogueLine, NoteDef } from './types'
+import { VILLAGE_DIALOGUE, VILLAGE_NOTES } from './regions/village'
+import { FOREST_DIALOGUE, FOREST_NOTES } from './regions/forest'
+import { BAY_DIALOGUE, BAY_NOTES } from './regions/bay'
+import { GARDEN_DIALOGUE, GARDEN_NOTES } from './regions/garden'
 
-export const NAMES = {
-  caca: 'Caca',
-  tatan: 'Tatan',
-  mimi: 'Mimi',
-  biscuit: 'Grandma Biscuit',
-  pip: 'Pip',
-} as const
+export { NAMES } from './names'
+import { NAMES } from './names'
 
 /** Optional line under the title, e.g. "Made with love for ...". Leave empty to hide. */
 export const DEDICATION = ''
@@ -55,7 +54,7 @@ export const NOTES: Record<string, NoteDef> = {
     id: 'note_chapter1',
     title: 'The map remembers',
     body:
-      "Look how brightly the meadow is shining now. That's your doing.\n\nThe next stars fell somewhere past the arch, near a little village that smells like warm bread. I'm a few steps closer than I was.",
+      "Look how brightly the meadow is shining now. That's your doing.\n\nThe next stars fell just past the arch, in a little village that smells like warm bread. Walk through when you're ready — I'm a few steps closer than I was.",
     signature: 'Tatan',
   },
 }
@@ -123,8 +122,9 @@ export const DIALOGUE: Record<string, DialogueLine[]> = {
     { speaker: NAMES.caca, text: "Three hollows… and three fragments. I think they fit." },
   ],
   arch_after: [
-    { speaker: 'Starlight Arch', text: "The path beyond the arch leads to Cuddleberry Village. It's still being woven from starlight — Chapter 2 is coming soon." },
+    { speaker: 'Starlight Arch', text: 'The arch shimmers. Beyond it, the path leads to Cuddleberry Village.' },
   ],
+  chapter_coming: [{ speaker: 'Caca', text: 'The path ahead shimmers like it’s still being woven from starlight… This chapter is coming soon!' }],
   teddy_early: [
     { speaker: NAMES.caca, text: "A little teddy bear sitting all alone on the swing. Someone must be missing him." },
   ],
@@ -141,6 +141,9 @@ export const DIALOGUE: Record<string, DialogueLine[]> = {
     { speaker: 'Heart Lantern', text: "The lantern glows softly, like it's waiting for someone." },
   ],
 }
+
+Object.assign(NOTES, VILLAGE_NOTES, FOREST_NOTES, BAY_NOTES, GARDEN_NOTES)
+Object.assign(DIALOGUE, VILLAGE_DIALOGUE, FOREST_DIALOGUE, BAY_DIALOGUE, GARDEN_DIALOGUE)
 
 /** Contextual tutorial hints, keyed by id. Shown once each. */
 export const HINTS = {

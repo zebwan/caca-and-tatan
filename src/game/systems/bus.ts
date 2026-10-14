@@ -12,6 +12,8 @@ export type GameEvent =
   | { type: 'happy' }
   | { type: 'splash' }
   | { type: 'chapterEnd'; region: string }
+  | { type: 'pawprints'; n: number; why?: string }
+  | { type: 'hearts'; x: number; y: number; z: number; n: number }
 
 type Listener = (e: GameEvent) => void
 const listeners = new Set<Listener>()
