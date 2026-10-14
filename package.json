@@ -1,0 +1,30 @@
+{
+  "name": "caca-and-tatan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/caveat": "5.2.5",
+    "@fontsource/fredoka": "5.2.6",
+    "@react-three/drei": "10.0.8",
+    "@react-three/fiber": "9.1.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "three": "0.176.0",
+    "zustand": "5.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.6",
+    "@types/react-dom": "19.1.5",
+    "@types/three": "0.176.0",
+    "@vitejs/plugin-react": "4.5.0",
+    "typescript": "5.8.3",
+    "vite": "6.3.5"
+  }
+}
