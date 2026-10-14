@@ -328,3 +328,34 @@ canvas { display: block; }
   .shop.boutique { grid-template-columns: 1fr; grid-template-rows: 220px 1fr; }
   .shop-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
+
+/* ── the final message ── */
+.finale { position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; background: radial-gradient(ellipse at 50% 45%, rgba(255, 240, 246, 0.55), rgba(90, 60, 120, 0.45)); animation: fadeIn 2.4s ease both; pointer-events: auto; }
+.finale-card { width: min(640px, 100%); max-height: calc(100vh - 40px); overflow: auto; background: linear-gradient(#fffaf3, #fff3f7); border-radius: 28px; padding: 34px 38px 28px; text-align: center; box-shadow: 0 30px 80px rgba(120, 60, 110, 0.35); animation: rise 2.2s 0.6s ease both; zoom: var(--ts, 1); }
+.finale-hearts { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
+.finale-message { font-family: var(--hand); font-size: clamp(26px, 3.4vw, 34px); line-height: 1.35; color: var(--ink); white-space: pre-line; animation: fadeIn 2.5s 1.6s ease both; }
+.finale-sig { font-family: var(--hand); font-size: 30px; color: var(--pink-deep); margin-top: 16px; animation: fadeIn 2s 3s ease both; }
+.finale-actions { margin-top: 22px; min-height: 52px; display: grid; place-items: center; }
+.finale-actions .btn { animation: pop 0.6s ease both; font-size: 20px; padding: 14px 30px; }
+
+/* ── memory book ── */
+.book-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.book-page { background: linear-gradient(#fffaf3, #fff4f6); border-radius: 18px; padding: 16px 18px; box-shadow: inset 0 0 0 2px #f6e3ea; }
+.book-page h3 { margin: 2px 0 8px; font-size: 22px; font-weight: 600; color: var(--pink-deep); }
+.book-page h4 { margin: 14px 0 6px; font-weight: 500; color: var(--ink-soft); }
+.book-page.locked { text-align: center; padding: 40px 18px; }
+.list.compact .item { padding: 8px 12px; }
+.stamp { display: inline-flex; gap: 6px; align-items: center; background: #fff; color: var(--pink-deep); border: 2px dashed #f7a8c6; border-radius: 12px; padding: 5px 12px; font-weight: 500; transform: rotate(-1.5deg); }
+.keepsake-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.keepsake-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border-radius: 14px; background: #fff; box-shadow: 0 2px 0 #f0d3df; font-size: 14px; }
+.keepsake-tile.locked { background: var(--cream-2); color: var(--ink-soft); box-shadow: none; cursor: default; }
+
+/* ── save code ── */
+.codebox { width: 100%; min-height: 64px; margin: 8px 0; padding: 10px; border-radius: 12px; border: 2px solid #f0dbe3; background: #fff; font: 12px/1.4 ui-monospace, monospace; color: var(--ink); resize: vertical; word-break: break-all; }
+.savecode p { margin: 0 0 6px; }
+@media (max-width: 720px) {
+  .region .label { font-size: 11px; padding: 2px 8px; }
+  .region .label small { display: none; }
+  .worldmap { padding: 12px; }
+  .worldmap header h2 { font-size: 20px; }
+}

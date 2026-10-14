@@ -8,21 +8,22 @@ export const FOREST_QUESTS: QuestDef[] = [
   {
     id: 'q_f_trail',
     region: 'forest',
-    title: 'Glowing Paw Prints',
-    description: 'Clover has seen glowing paw prints leading deep into the trees.',
+    title: 'The Stardust Trail',
+    description: 'Clover saw a trail of glowing stardust leading deep into the trees.',
     main: true,
     requires: ['q_v_home'],
     startEvent: 'talk:clover',
     startLocation: L.npcs.clover,
     startObjective: 'Someone small is waiting by the path — say hello',
+    startGift: [],
     steps: [
       {
-        id: 'follow', objective: 'Follow the glowing paw prints', event: 'reach:paw', count: L.pawTrail.length,
-        location: L.pawTrail[0], progressLabel: 'paw prints', targets: { prefix: 'paw', points: L.pawTrail, ordered: true },
+        id: 'follow', objective: 'Follow the trail of stardust', event: 'reach:paw', count: L.pawTrail.length,
+        location: L.pawTrail[0], progressLabel: 'sparkles', targets: { prefix: 'paw', points: L.pawTrail, ordered: true },
       },
-      { id: 'photo', objective: 'Look at what’s waiting in the hidden clearing', event: 'collect:forestphoto', location: L.photo },
+      { id: 'photo', objective: 'Open the glowing wish-lantern in the hidden clearing', event: 'collect:forestphoto', location: L.photo },
     ],
-    reward: { fragments: 1, note: 'note_f_trail' },
+    reward: { fragments: 1, say: 'tatan_f_trail' },
   },
   {
     id: 'q_f_mushrooms',
@@ -41,7 +42,7 @@ export const FOREST_QUESTS: QuestDef[] = [
       },
       { id: 'return', objective: 'Tell Professor Hoot the grove is glowing', event: 'talk:hoot', location: L.npcs.hoot },
     ],
-    reward: { fragments: 1, note: 'note_f_mushrooms' },
+    reward: { fragments: 1, say: 'tatan_f_mushrooms' },
   },
   {
     id: 'q_f_stars',
@@ -54,7 +55,7 @@ export const FOREST_QUESTS: QuestDef[] = [
     startLocation: L.npcs.hoot,
     startObjective: 'Professor Hoot has one more favour to ask',
     steps: [{ id: 'solve', objective: 'Connect the star stones along the heart', event: 'solve:constellation', location: L.moonClearing }],
-    reward: { fragments: 1, accessory: 'starBow', note: 'note_f_stars' },
+    reward: { fragments: 1, accessory: 'starBow', say: 'tatan_f_stars' },
   },
   {
     id: 'q_f_gate',
@@ -64,9 +65,28 @@ export const FOREST_QUESTS: QuestDef[] = [
     main: true,
     requires: ['q_f_stars'],
     startLocation: L.altar,
-    startObjective: 'Bring the forest fragments to the Moon Altar',
-    steps: [{ id: 'place', objective: 'Bring the forest fragments to the Moon Altar', event: 'activate:altar', location: L.altar }],
-    reward: { note: 'note_f_gate' },
+    startObjective: 'Wake the Moon Altar — it needs two cats',
+    steps: [
+      { id: 'plates', objective: 'Stand on a moon plate — Tatan will take the other', event: 'press:moonplates', location: L.altar },
+      { id: 'place', objective: 'Place the forest fragments on the Moon Altar', event: 'activate:altar', location: L.altar },
+    ],
+    reward: { say: 'tatan_f_gate' },
+  },
+  {
+    id: 'q_f_lens',
+    region: 'forest',
+    title: 'Luna’s Telescope',
+    description: 'Luna the stargazer lost the lens of her telescope.',
+    main: false,
+    requires: ['q_f_trail'],
+    startEvent: 'talk:luna',
+    startLocation: L.npcs.luna,
+    startObjective: 'Luna the stargazer needs help',
+    steps: [
+      { id: 'find', objective: 'Find Luna’s lens near the hollow log', event: 'collect:lens', location: L.lens },
+      { id: 'return', objective: 'Bring the lens back to Luna', event: 'talk:luna', location: L.npcs.luna },
+    ],
+    reward: { pawprints: 20 },
   },
   {
     id: 'q_f_fireflies',
@@ -89,46 +109,15 @@ export const FOREST_QUESTS: QuestDef[] = [
   },
 ]
 
-export const FOREST_NOTES: Record<string, NoteDef> = {
-  note_f_arrive: {
-    id: 'note_f_arrive',
-    title: 'Don’t be scared',
-    body: "It's darker here, but nothing in this forest would ever hurt you. The owls are wise, the bunnies are shy and the mushrooms glow like night-lights.\n\nAnd if you get lonely, look up. Same moon as mine.",
-    signature: 'Tatan',
-  },
-  note_f_trail: {
-    id: 'note_f_trail',
-    title: 'You followed my paw prints',
-    body: "I knew you would. I walked this way once and left a little light in every step, just in case.\n\nThe photo in the clearing is of us. Keep it. I have a copy in my heart.",
-    signature: 'Tatan',
-  },
-  note_f_mushrooms: {
-    id: 'note_f_mushrooms',
-    title: 'The forest is glowing',
-    body: "Every mushroom you woke up is glowing a little brighter because you said hello.\n\nThat's what you do to everything, you know. You make it glow.",
-    signature: 'Tatan',
-  },
-  note_f_stars: {
-    id: 'note_f_stars',
-    title: 'A heart in the sky',
-    body: "I asked the stars to make a shape only you would recognise. They chose a heart. Smart stars.\n\nThere's a starlight bow for you too — try it on.",
-    signature: 'Tatan',
-  },
-  note_f_gate: {
-    id: 'note_f_gate',
-    title: 'Can you hear the sea?',
-    body: "The last stars fell by the water, in Bubblegum Bay, east past the village.\n\nThe sand there is pink and the waves are soft. I'm getting closer, Caca. So are you.",
-    signature: 'Tatan',
-  },
-}
+export const FOREST_NOTES: Record<string, NoteDef> = {}
 
 export const FOREST_DIALOGUE: Record<string, DialogueLine[]> = {
   clover_offer: [
-    { speaker: NAMES.clover, text: 'Oh! Hi! You startled me. Everything’s so quiet in the forest.' },
-    { speaker: NAMES.clover, text: 'Last night I saw paw prints that glowed like little moons. They went that way, all twisty, into the trees.' },
-    { speaker: NAMES.clover, text: 'They look a lot like your paws… but bigger. Maybe you should follow them?' },
+    { speaker: NAMES.clover, text: 'Oh! Hi! Two cats! You startled me. Everything’s so quiet in the forest.' },
+    { speaker: NAMES.clover, text: 'Last night a falling star bounced through the trees and left a trail of stardust. It twinkles all the way to a hidden clearing.' },
+    { speaker: NAMES.tatan, text: 'Stardust? That sounds like one of our stars, Caca. Let’s follow it!' },
   ],
-  clover_waiting: [{ speaker: NAMES.clover, text: 'The glowing paw prints! Follow them one by one — they light up as you go.' }],
+  clover_waiting: [{ speaker: NAMES.clover, text: 'Follow the twinkly stardust, one sparkle at a time!' }],
   clover_idle: [{ speaker: NAMES.clover, text: 'The forest is never scary when you have a friend, right?' }],
   clover_ff_offer: [
     { speaker: NAMES.clover, text: 'Um… could I ask a tiny favour? My burrow is very dark at night.' },
@@ -143,7 +132,7 @@ export const FOREST_DIALOGUE: Record<string, DialogueLine[]> = {
 
   hoot_idle: [{ speaker: NAMES.hoot, text: 'Hoo! A young explorer. The forest whispers, but only to those who listen.' }],
   hoot_mush_offer: [
-    { speaker: NAMES.hoot, text: 'Hoo-hoo. You must be the cat the stars keep talking about.' },
+    { speaker: NAMES.hoot, text: 'Hoo-hoo. You two must be the cats the stars keep talking about.' },
     { speaker: NAMES.hoot, text: 'The moon mushrooms have fallen asleep and the grove is far too dark. Five of them, west of here.' },
     { speaker: NAMES.hoot, text: 'Give each one a gentle boop on the nose. They love that.' },
   ],
@@ -162,14 +151,56 @@ export const FOREST_DIALOGUE: Record<string, DialogueLine[]> = {
 
   constellation_wrong: [{ speaker: NAMES.hoot, text: 'Hoo — that stone isn’t next in the heart. The stars reset. Follow the faint lines to the neighbouring stone!' }],
   altar_locked: [{ speaker: 'Moon Altar', text: 'A pale stone altar, cool to the touch. Three star-shaped hollows face the moon.' }],
-  altar_ready: [{ speaker: NAMES.caca, text: 'The moon is watching. Let’s give it the forest’s stars.' }],
+  altar_ready: [
+    { speaker: NAMES.caca, text: 'The moon is watching. Let’s give it the forest’s stars.' },
+    { speaker: NAMES.tatan, text: 'Together, on three. One… two…' },
+  ],
   altar_after: [{ speaker: 'Moon Altar', text: 'The altar hums softly. The way back east to the village is clear, and the road to the sea is waking up.' }],
-  photo_pickup: [{ speaker: NAMES.caca, text: 'A photograph, pinned to a lantern… it’s me and Tatan. He was here.' }],
+  photo_pickup: [
+    { speaker: NAMES.caca, text: 'A paper wish-lantern, glowing from the inside… there’s a starlight fragment in it!' },
+    { speaker: NAMES.tatan, text: 'Someone made a wish here once. I think it came true.' },
+  ],
+  tatan_f_trail: [{ speaker: NAMES.tatan, text: 'One forest star found. You’re really good at this, you know.' }],
+  tatan_f_mushrooms: [{ speaker: NAMES.tatan, text: 'The whole grove is glowing pink. Like your cheeks when I say something cheesy.' }],
+  tatan_f_stars: [{ speaker: NAMES.tatan, text: 'A heart in the stars… and a starlight bow for you. Try it on!' }],
+  tatan_f_gate: [
+    { speaker: NAMES.tatan, text: 'Listen… can you hear the sea? The road east of the village is open now.' },
+    { speaker: NAMES.tatan, text: 'Bubblegum Bay. Pink sand, soft waves. Our last stars are waiting there.' },
+  ],
+  moonplate_help: [{ speaker: NAMES.tatan, text: 'Two plates, two cats! I’ll stand on this one.' }],
+  altar_plates: [{ speaker: 'Moon Altar', text: 'Two round moon plates sit on either side of the altar. It seems to need two friends at once.' }],
+  luna_idle: [{ speaker: 'Luna', text: 'The stars here are shy. Stay quiet and they come out to play.' }],
+  luna_night: [{ speaker: 'Luna', text: 'Look up! Tonight the whole sky is out.' }],
+  luna_offer: [
+    { speaker: 'Luna', text: 'Oh dear. I dropped the lens from my telescope near the hollow log in the west.' },
+    { speaker: 'Luna', text: 'Without it every star looks like a fuzzy marshmallow. Could you find it?' },
+  ],
+  luna_waiting: [{ speaker: 'Luna', text: 'A little round glass lens, somewhere near the hollow log.' }],
+  luna_return: [{ speaker: 'Luna', text: 'My lens! The stars are sharp again. Here — pawprints, for your kindness.' }],
+  luna_done: [{ speaker: 'Luna', text: 'Want to know a secret? The brightest star is the one right next to you.' }],
+  lens_pickup: [{ speaker: NAMES.caca, text: 'A tiny glass lens, glinting in the moss.' }],
+  sprout_idle: [{ speaker: 'Sprout', text: 'I water the mushrooms with moonlight. They like it best.' }],
+  sprout_night: [{ speaker: 'Sprout', text: '*yawn* The mushrooms are humming lullabies…' }],
   mushroom_boop: [{ speaker: NAMES.caca, text: '*boop*' }],
   gate_forest_east: [{ speaker: NAMES.caca, text: 'The path back east leads to Cuddleberry Village.' }],
 }
 
 export const FOREST_NPCS: Record<string, NpcDef> = {
+  luna: {
+    id: 'luna', name: 'Luna', event: 'talk:luna',
+    rules: [
+      { quest: 'q_f_lens', state: 'available', dialogue: 'luna_offer' },
+      { quest: 'q_f_lens', state: 'in_progress', step: 'find', dialogue: 'luna_waiting' },
+      { quest: 'q_f_lens', state: 'in_progress', step: 'return', dialogue: 'luna_return' },
+      { quest: 'q_f_lens', state: 'completed', dialogue: 'luna_done' },
+      { time: 'night', dialogue: 'luna_night' },
+      { dialogue: 'luna_idle' },
+    ],
+  },
+  sprout: {
+    id: 'sprout', name: 'Sprout', event: 'talk:sprout',
+    rules: [{ time: 'night', dialogue: 'sprout_night' }, { dialogue: 'sprout_idle' }],
+  },
   clover: {
     id: 'clover', name: NAMES.clover, event: 'talk:clover',
     rules: [

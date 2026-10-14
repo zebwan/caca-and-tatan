@@ -7,6 +7,7 @@ import { setAdvanceHandler } from '../systems/input'
 import { DEDICATION, INTRO_CARDS } from '../data/story'
 import { HeartIcon, SoundIcon } from './icons'
 import { updateSettings } from './PauseMenu'
+import { SaveCodePanel } from './SaveCode'
 
 export function SoundToggle() {
   const muted = useGame((s) => s.settings.muted)
@@ -28,6 +29,7 @@ export function SoundToggle() {
 export function TitleScreen() {
   const [saved] = useState(hasSave)
   const [confirm, setConfirm] = useState(false)
+  const [importing, setImporting] = useState(false)
   return (
     <div className="title-screen fade-in">
       <div className="corner">
@@ -49,7 +51,23 @@ export function TitleScreen() {
           <HeartIcon size={18} color={saved ? '#f27aa6' : '#fff'} /> {saved ? 'New adventure' : 'Start adventure'}
         </button>
         {DEDICATION && <div className="dedication">{DEDICATION}</div>}
+        <button className="btn ghost" onClick={() => setImporting(true)}>
+          Have a save code?
+        </button>
       </div>
+      {importing && (
+        <div className="scrim" onClick={(e) => e.target === e.currentTarget && setImporting(false)}>
+          <div className="confirm panel" style={{ maxWidth: 460, textAlign: 'left' }}>
+            <h3>Continue from another device</h3>
+            <SaveCodePanel allowExport={false} />
+            <div className="row" style={{ marginTop: 10, justifyContent: 'flex-end' }}>
+              <button className="btn soft small" onClick={() => setImporting(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="title-foot">
         <span>WASD · move</span>
         <span>Mouse · look</span>

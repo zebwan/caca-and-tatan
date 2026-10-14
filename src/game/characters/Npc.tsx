@@ -7,7 +7,7 @@ import { CatAnimator } from './catAnimation'
 import { runtime } from '../state/runtime'
 import { game, useGame } from '../state/store'
 import { interactions } from '../systems/interactions'
-import { talkTo } from '../systems/dialogue'
+import { talkTo, timeOfDay } from '../systems/dialogue'
 import { NPCS } from '../data/npcs'
 import { QUEST_BY_ID } from '../data/quests'
 import { dampAngle } from './Player'
@@ -21,7 +21,7 @@ interface Props {
   y: number
   yaw: number
   /** Quest this NPC hands out; shows a floating star while it is available. */
-  offers?: string
+  offers?: string | string[]
   /** Optional side quests get a lavender marker instead of pink. */
   optional?: boolean
   children?: React.ReactNode
@@ -33,8 +33,15 @@ export function Npc({ id, variant, x, z, y, yaw, offers, optional, children }: P
   const marker = useRef<THREE.Group>(null)
   const state = useRef({ yaw, talkT: 0 })
   const pos = useMemo(() => new THREE.Vector3(x, y, z), [x, y, z])
-  const offerState = useGame((s) => (offers ? s.quests[offers]?.state : undefined))
-  const offerStep = useGame((s) => (offers ? s.quests[offers]?.step : undefined))
+  const offerList = offers ? (Array.isArray(offers) ? offers : [offers]) : []
+  const showMarker = useGame((s) =>
+    offerList.some((q) => {
+      const st = s.quests[q]
+      if (!st) return false
+      if (st.state === 'available') return true
+      return st.state === 'in_progress' && QUEST_BY_ID[q].steps[st.step]?.event === NPCS[id].event
+    }),
+  )
   const npc = NPCS[id]
 
   useEffect(() => () => disposeRig(rig), [rig])
@@ -66,7 +73,10 @@ export function Npc({ id, variant, x, z, y, yaw, offers, optional, children }: P
     s.yaw = dampAngle(s.yaw, targetYaw, 3, dt)
     rig.root.position.copy(pos)
     rig.root.rotation.y = s.yaw
+    // villagers curl up and doze at night (they still wake up to chat)
+    const dozing = timeOfDay() === 'night' && !talking && d > 2.2
     anim.update(rig, {
+      forceSleep: dozing,
       dt,
       t: runtime.time + x,
       gait: 0,
@@ -86,9 +96,6 @@ export function Npc({ id, variant, x, z, y, yaw, offers, optional, children }: P
     }
   })
 
-  const showMarker =
-    offerState === 'available' ||
-    (!!offers && offerState === 'in_progress' && offerStep !== undefined && QUEST_BY_ID[offers].steps[offerStep]?.event === npc.event)
   return (
     <group>
       <primitive object={rig.root} />

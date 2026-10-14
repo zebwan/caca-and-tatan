@@ -112,6 +112,7 @@ export function Props({ spots, geo, mat, colors, scale, castShadow = true }: {
 }) {
   const ref = useRef<THREE.InstancedMesh>(null)
   useLayoutEffect(() => {
+    if (!ref.current) return
     spots.forEach((p, i) => {
       tmp.position.set(p.x, p.y, p.z)
       tmp.rotation.set(0, p.rot, 0)

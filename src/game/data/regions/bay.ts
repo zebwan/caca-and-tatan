@@ -22,7 +22,7 @@ export const BAY_QUESTS: QuestDef[] = [
       },
       { id: 'return', objective: 'Bring the shells to Shelly', event: 'talk:shelly', location: L.npcs.shelly },
     ],
-    reward: { fragments: 1, note: 'note_b_shells' },
+    reward: { fragments: 1, say: 'tatan_b_shells' },
   },
   {
     id: 'q_b_kitten',
@@ -38,7 +38,7 @@ export const BAY_QUESTS: QuestDef[] = [
       { id: 'reach', objective: 'Hop across the stepping stones to Pebble', event: 'collect:pebble', location: L.kitten },
       { id: 'return', objective: 'Carry Pebble back to Captain Marmalade', event: 'talk:captain', location: L.npcs.captain },
     ],
-    reward: { fragments: 1, accessory: 'collar', note: 'note_b_kitten' },
+    reward: { fragments: 1, accessory: 'collar', say: 'tatan_b_kitten' },
   },
   {
     id: 'q_b_bottle',
@@ -51,7 +51,7 @@ export const BAY_QUESTS: QuestDef[] = [
     startLocation: L.npcs.captain,
     startObjective: 'The Captain spotted something out at sea',
     steps: [{ id: 'fetch', objective: 'Take the little boat to the sandbar', event: 'collect:bottle', location: L.bottle }],
-    reward: { fragments: 1, note: 'note_b_bottle' },
+    reward: { fragments: 1, say: 'tatan_b_bottle' },
   },
   {
     id: 'q_b_gate',
@@ -63,7 +63,7 @@ export const BAY_QUESTS: QuestDef[] = [
     startLocation: L.lighthouseDoor,
     startObjective: 'Bring the bay fragments to the lighthouse',
     steps: [{ id: 'light', objective: 'Bring the bay fragments to the lighthouse', event: 'activate:lighthouse', location: L.lighthouseDoor }],
-    reward: { note: 'note_b_gate' },
+    reward: { say: 'tatan_b_gate' },
   },
   {
     id: 'q_b_treasure',
@@ -86,42 +86,11 @@ export const BAY_QUESTS: QuestDef[] = [
   },
 ]
 
-export const BAY_NOTES: Record<string, NoteDef> = {
-  note_b_arrive: {
-    id: 'note_b_arrive',
-    title: 'Pink sand!',
-    body: "Remember how I said the sand here was pink? I wasn't exaggerating. Take your paws out of the waves and run along the beach for me.\n\nThe lighthouse at the north end hasn't shone since the stars fell. I think you'll know what to do.",
-    signature: 'Tatan',
-  },
-  note_b_shells: {
-    id: 'note_b_shells',
-    title: 'Listen closely',
-    body: "Hold a shell to your ear and you'll hear the sea. Hold your paw to your heart and you'll hear me.\n\nCorny? Very. True? Also very.",
-    signature: 'Tatan',
-  },
-  note_b_kitten: {
-    id: 'note_b_kitten',
-    title: 'Brave paws',
-    body: "Hopping across those stones over the water — I know you don't love getting wet. You did it anyway, for someone small and scared.\n\nThe Captain gave you a bell collar. Now I'll always hear you coming.",
-    signature: 'Tatan',
-  },
-  note_b_bottle: {
-    id: 'note_b_bottle',
-    title: 'A message in a bottle',
-    body: "If you're reading this, you sailed all the way out to find it. Of course you did.\n\nI'm in the Starlight Garden, where we made our wish. Light the lighthouse and the stars will build you a way up. I'm waiting under our tree.",
-    signature: 'Tatan',
-  },
-  note_b_gate: {
-    id: 'note_b_gate',
-    title: 'Look up',
-    body: "Every star you gathered is shining now, all across Purrland, and they've made a staircase just for you.\n\nCome home, Caca.",
-    signature: 'Tatan',
-  },
-}
+export const BAY_NOTES: Record<string, NoteDef> = {}
 
 export const BAY_DIALOGUE: Record<string, DialogueLine[]> = {
   shelly_offer: [
-    { speaker: NAMES.shelly, text: 'Ahoy, sweetie! Isn’t the sea pretty today? All pink and sparkly.' },
+    { speaker: NAMES.shelly, text: 'Ahoy, sweeties! Isn’t the sea pretty today? All pink and sparkly.' },
     { speaker: NAMES.shelly, text: 'I’m making a wind chime that sings like the waves, but I need six pastel seashells. They wash up along the shore.' },
   ],
   shelly_waiting: [{ speaker: NAMES.shelly, text: 'Six pastel seashells! Walk along the waterline — they glimmer in the sand.' }],
@@ -165,16 +134,38 @@ export const BAY_DIALOGUE: Record<string, DialogueLine[]> = {
   ],
   pebble_wait: [{ speaker: NAMES.pebble, text: 'Mew? Are you going to help me?' }],
   boat_go: [{ speaker: NAMES.caca, text: 'All aboard!' }],
-  boat_locked: [{ speaker: NAMES.caca, text: 'A cute little boat. I should ask the Captain before I borrow it.' }],
-  bottle_pickup: [{ speaker: NAMES.caca, text: 'A glass bottle with a rolled-up letter inside… and pink ribbon. I know that ribbon.' }],
+  boat_locked: [{ speaker: NAMES.caca, text: 'A cute little boat. We should ask the Captain before we borrow it.' }],
+  bottle_pickup: [
+    { speaker: NAMES.caca, text: 'A glass bottle with a rolled-up letter inside… and pink ribbon. Tatan, isn’t this your handwriting?' },
+    { speaker: NAMES.tatan, text: 'Ah. Um. I wrote that the day the wind took you. I threw it into the sea hoping it would find you.' },
+    { speaker: NAMES.tatan, text: 'It says “Follow the stars home. I’ll be under our tree.” …And now we’re going there together.' },
+  ],
+  tatan_b_shells: [{ speaker: NAMES.tatan, text: 'Hold a shell to your ear… hear that? That’s the sea saying you’re cute.' }],
+  tatan_b_kitten: [{ speaker: NAMES.tatan, text: 'You were so brave on those wobbly stones. And that bell collar is adorable.' }],
+  tatan_b_bottle: [{ speaker: NAMES.tatan, text: 'Just one thing left here: the lighthouse. Let’s make it shine.' }],
+  tatan_b_gate: [
+    { speaker: NAMES.tatan, text: 'Look — every star we found is shining at once. They’ve built us a staircase to the sky.' },
+    { speaker: NAMES.tatan, text: 'The Starlight Garden. Where we made our wish. Shall we go home, Caca?' },
+  ],
+  sunny_idle: [{ speaker: 'Sunny', text: 'Surf’s up! Well, it’s more of a gentle wobble. Bubblegum Bay doesn’t do big waves.' }],
+  sunny_evening: [{ speaker: 'Sunny', text: 'Best sunsets in Purrland, right here. Everything goes pink and gold.' }],
+  sunny_night: [{ speaker: 'Sunny', text: 'Shh, the sea’s sleeping. Can you hear it snore?' }],
+  marina_idle: [{ speaker: 'Marina', text: 'Ice cream? Strawberry, vanilla, or… strawberry-vanilla swirl. You two look like a swirl kind of couple.' }],
+  marina_night: [{ speaker: 'Marina', text: 'Closed for the night! Come back for a scoop tomorrow.' }],
+  boat_ride: [{ speaker: NAMES.tatan, text: 'I’ll row! You just enjoy the view.' }],
   dig_found: [{ speaker: NAMES.caca, text: 'Dig, dig… something shiny!' }],
   lighthouse_locked: [{ speaker: 'Lighthouse', text: 'The great lamp at the top is dark. A small door at the bottom has three star-shaped hollows.' }],
-  lighthouse_ready: [{ speaker: NAMES.caca, text: 'Three hollows, three fragments. Let’s light up the whole bay.' }],
+  lighthouse_ready: [
+    { speaker: NAMES.caca, text: 'Three hollows, three fragments. Let’s light up the whole bay.' },
+    { speaker: NAMES.tatan, text: 'Paws together — one, two, three!' },
+  ],
   lighthouse_after: [{ speaker: 'Lighthouse', text: 'The lamp shines all the way up into the sky. A staircase of stars waits on the cliff.' }],
   stairs_locked: [{ speaker: NAMES.caca, text: 'Just a windy cliff for now.' }],
 }
 
 export const BAY_NPCS: Record<string, NpcDef> = {
+  sunny: { id: 'sunny', name: 'Sunny', event: 'talk:sunny', rules: [{ time: 'evening', dialogue: 'sunny_evening' }, { time: 'night', dialogue: 'sunny_night' }, { dialogue: 'sunny_idle' }] },
+  marina: { id: 'marina', name: 'Marina', event: 'talk:marina', rules: [{ time: 'night', dialogue: 'marina_night' }, { dialogue: 'marina_idle' }] },
   shelly: {
     id: 'shelly', name: NAMES.shelly, event: 'talk:shelly',
     rules: [

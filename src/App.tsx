@@ -7,7 +7,7 @@ import { audio } from './game/systems/audio'
 import { bus } from './game/systems/bus'
 import { dispatch } from './game/systems/quests'
 import { input } from './game/systems/input'
-import { QUEST_BY_ID, TOTAL_FRAGMENTS } from './game/data/quests'
+import { QUESTS, QUEST_BY_ID, TOTAL_FRAGMENTS } from './game/data/quests'
 import { HUD, Toasts } from './game/ui/HUD'
 import { Presentations } from './game/ui/Presentations'
 import { PauseMenu } from './game/ui/PauseMenu'
@@ -15,7 +15,8 @@ import { WorldMap } from './game/ui/WorldMap'
 import { IntroCards, TitleScreen } from './game/ui/TitleScreen'
 import { CatCreator } from './game/ui/CatCreator'
 import { Shop, Decorate } from './game/ui/Shop'
-import { startIntro } from './game/flow'
+import { startIntro, travelTo } from './game/flow'
+import { saveGame } from './game/state/save'
 
 /** Turns game events into toasts and sounds. */
 function useGameEffects() {
@@ -78,7 +79,7 @@ export default function App() {
     window.addEventListener('pointerdown', unlock, { once: true })
     window.addEventListener('keydown', unlock, { once: true })
     // handle for scripted testing in the browser console
-    ;(window as unknown as Record<string, unknown>).__game = { game, runtime, dispatch, input }
+    ;(window as unknown as Record<string, unknown>).__game = { game, runtime, dispatch, input, QUESTS, travelTo, saveGame }
     return () => {
       window.removeEventListener('pointerdown', unlock)
       window.removeEventListener('keydown', unlock)

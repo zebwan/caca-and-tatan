@@ -46,7 +46,7 @@ export function Halo({ color = '#fff0c8', r = 0.45, opacity = 0.2 }: { color?: s
  * Active while its step is in progress and it hasn't been done yet.
  */
 export function QuestTarget({
-  id, quest, step, event, x, z, y, label, mode = 'interact', radius = 2.3, dialogue, children, idle, done, bob = 0, glow = '#fff0c8', onDone,
+  id, quest, step, event, x, z, y, label, mode = 'interact', radius = 2.3, dialogue, children, idle, done, bob = 0, glow = '#fff0c8', onDone, enabled = true,
 }: {
   id: string
   quest: string
@@ -66,9 +66,13 @@ export function QuestTarget({
   bob?: number
   glow?: string | null
   onDone?: () => void
+  /** Extra condition (e.g. ordered trails): when false the target shows as idle. */
+  enabled?: boolean
 }) {
   const have = useGame((s) => s.collected.includes(id))
-  const active = useGame((s) => s.quests[quest]?.state === 'in_progress' && questStepIdFrom(s.quests, quest) === step)
+  const active = useGame((s) => s.quests[quest]?.state === 'in_progress' && questStepIdFrom(s.quests, quest) === step) && enabled
+  const enabledRef = useRef(enabled)
+  enabledRef.current = enabled
   const ref = useRef<THREE.Group>(null)
 
   const complete = () => {
@@ -88,7 +92,7 @@ export function QuestTarget({
       position: new THREE.Vector3(x, y + 0.8, z),
       radius,
       label: () => label,
-      enabled: () => !isCollected(id) && stepActive(quest, step),
+      enabled: () => !isCollected(id) && stepActive(quest, step) && enabledRef.current,
       onInteract: () => (dialogue ? say(dialogue, complete) : complete()),
     })
   }, [id, x, y, z, radius, label, mode, quest, step, dialogue]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -225,7 +229,7 @@ export function ExitGate({ exit, y, color = '#f7a8c6' }: { exit: ExitDef; y: num
  * then the quest completes and the next region is revealed on the map.
  */
 export function FragmentCeremony({
-  quest, event, anchor, y, holes, standAt, camA, camB, camC, lookY = 2, dialogues, reveal, children, visionAt, onFinish,
+  quest, event, anchor, y, holes, standAt, camA, camB, camC, lookY = 2, dialogues, reveal, children, visionAt, onFinish, vision = true, step,
 }: {
   quest: string
   event: string
@@ -243,6 +247,10 @@ export function FragmentCeremony({
   visionAt: { x: number; z: number; yaw: number }
   children: (lit: number) => ReactNode
   onFinish?: () => void
+  /** Show a ghostly vision of Tatan (only while he is still lost). */
+  vision?: boolean
+  /** Only this step of the quest can start the ceremony. */
+  step?: string
 }) {
   const done = useGame((s) => s.quests[quest]?.state === 'completed')
   const seq = useRef<{ t: number } | null>(null)
@@ -269,7 +277,7 @@ export function FragmentCeremony({
         onInteract: () => {
           const qs = questState(quest)
           if (qs === 'completed') return say(dialogues.after)
-          if (qs !== 'in_progress') return say(dialogues.locked)
+          if (qs !== 'in_progress' || (step && questStepId(quest) !== step)) return say(dialogues.locked)
           say(dialogues.ready, () => {
             seq.current = { t: 0 }
             const P = runtime.player
@@ -277,6 +285,9 @@ export function FragmentCeremony({
             P.pos.set(standAt.x, runtime.world!.terrain(standAt.x, standAt.z), standAt.z)
             P.vel.set(0, 0, 0)
             P.yaw = standAt.yaw
+            // Tatan stands beside Caca for the moment
+            runtime.companion.pos.set(standAt.x + Math.cos(standAt.yaw) * 1.1, P.pos.y, standAt.z - Math.sin(standAt.yaw) * 1.1)
+            runtime.companion.yaw = standAt.yaw
             runtime.cutscene.active = true
             game.set({ cutscene: true })
             runtime.cutscene.ease = 1.0
@@ -317,7 +328,7 @@ export function FragmentCeremony({
       P.mood = 'happy'
       P.moodTime = 0
     }
-    const vis = s.t < 3.6 ? 0 : s.t < 4.6 ? s.t - 3.6 : s.t < 8.0 ? 1 : Math.max(0, 1 - (s.t - 8.0))
+    const vis = !vision ? 0 : s.t < 3.6 ? 0 : s.t < 4.6 ? s.t - 3.6 : s.t < 8.0 ? 1 : Math.max(0, 1 - (s.t - 8.0))
     tatan.root.visible = vis > 0.01
     setRigOpacity(tatan, vis * 0.75)
     tatan.root.position.set(visionAt.x, runtime.world!.terrain(visionAt.x, visionAt.z) + 0.05, visionAt.z)

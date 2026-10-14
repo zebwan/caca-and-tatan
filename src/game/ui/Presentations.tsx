@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { game, useGame, type Presentation } from '../state/store'
 import { NAMES, NOTES } from '../data/story'
 import { KEEPSAKES } from '../data/items'
+import { FINAL_BUTTON, FINAL_MESSAGE, FINAL_SIGNATURE } from '../data/personal'
 import { TOTAL_FRAGMENTS } from '../data/quests'
 import { keepsakeMemory } from '../systems/quests'
 import { openMenu, setAdvanceHandler } from '../systems/input'
@@ -168,6 +169,46 @@ function ChapterEnd() {
   )
 }
 
+/** The final message, after the wish. Gives plenty of time to read before the button appears. */
+function Finale({ p }: { p: Extract<Presentation, { kind: 'finale' }> }) {
+  const [showButton, setShowButton] = useState(false)
+  useEffect(() => {
+    audio.sfx('reveal')
+    const wait = Math.max(7000, FINAL_MESSAGE.length * 45)
+    const t = setTimeout(() => {
+      setShowButton(true)
+      setAdvanceHandler(() => game.dismiss())
+    }, wait)
+    return () => {
+      clearTimeout(t)
+      setAdvanceHandler(null)
+    }
+  }, [])
+  void p
+  return (
+    <div className="finale">
+      <div className="finale-card">
+        <div className="finale-hearts" aria-hidden>
+          <HeartIcon size={26} />
+          <HeartIcon size={34} />
+          <HeartIcon size={26} />
+        </div>
+        <div className="finale-message">{FINAL_MESSAGE}</div>
+        <div className="finale-sig">— {FINAL_SIGNATURE}</div>
+        <div className="finale-actions">
+          {showButton ? (
+            <button className="btn" onClick={() => game.dismiss()}>
+              {FINAL_BUTTON}
+            </button>
+          ) : (
+            <span className="muted">♥</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Banner({ title, subtitle }: { title: string; subtitle: string }) {
   useEffect(() => {
     audio.sfx('reveal')
@@ -204,5 +245,7 @@ export function Presentations() {
       return <ChapterEnd key={key} />
     case 'banner':
       return <Banner key={key} title={cur.title} subtitle={cur.subtitle} />
+    case 'finale':
+      return <Finale key={key} p={cur} />
   }
 }

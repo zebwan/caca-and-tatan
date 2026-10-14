@@ -13,7 +13,8 @@ import { Keepsake } from '../common/Keepsake'
 import { ExitGate, Halo, QuestTarget, StarSocket } from '../common/questKit'
 import { GEO, toon } from '../materials'
 import { Npc } from '../../characters/Npc'
-import { buildCat, buildHero, disposeRig, setRigOpacity, VARIANTS } from '../../characters/catBuilder'
+import { MiniCat as MiniCatBase } from '../../characters/MiniCat'
+import { buildHero, disposeRig, setRigOpacity } from '../../characters/catBuilder'
 import { CatAnimator } from '../../characters/catAnimation'
 import { runtime } from '../../state/runtime'
 import { game, useGame } from '../../state/store'
@@ -25,7 +26,6 @@ import { bus } from '../../systems/bus'
 import { saveGame } from '../../state/save'
 import { travelTo } from '../../flow'
 import { regionRT } from '../regions'
-import { dampAngle } from '../../characters/Player'
 
 const H = (p: { x: number; z: number }) => villageHeight(p.x, p.z)
 
@@ -367,32 +367,7 @@ function VillageQuestProps() {
   )
 }
 
-/** A small animated NPC cat used for kittens. */
-function MiniCat({ variant, yaw = 0, wander }: { variant: 'kittenA' | 'kittenB' | 'kittenC'; yaw?: number; wander?: { x: number; z: number; i: number } }) {
-  const rig = useMemo(() => buildCat(VARIANTS[variant]), [variant])
-  const anim = useMemo(() => new CatAnimator(), [])
-  const st = useRef({ yaw })
-  useEffect(() => () => disposeRig(rig), [rig])
-  useFrame((_, rawDt) => {
-    const dt = Math.min(rawDt, 1 / 20)
-    let gait = 0
-    if (wander) {
-      const t = runtime.time * 0.5 + wander.i * 2
-      const x = wander.x + Math.cos(t) * 1.4, z = wander.z + Math.sin(t * 1.3) * 1.0
-      const nx = wander.x + Math.cos(t + 0.05) * 1.4, nz = wander.z + Math.sin((t + 0.05) * 1.3) * 1.0
-      rig.root.position.set(x, villageHeight(x, z), z)
-      st.current.yaw = dampAngle(st.current.yaw, Math.atan2(nx - x, nz - z), 8, dt)
-      gait = 0.8
-    } else {
-      const P = runtime.player.pos
-      const g = rig.root.getWorldPosition(new THREE.Vector3())
-      if (Math.hypot(P.x - g.x, P.z - g.z) < 6) st.current.yaw = dampAngle(st.current.yaw, Math.atan2(P.x - g.x, P.z - g.z), 4, dt)
-    }
-    rig.root.rotation.y = st.current.yaw
-    anim.update(rig, { dt, t: runtime.time + (wander?.i ?? 0), gait, grounded: true, vy: 0, idleTime: 0, mood: 'none', moodTime: 0, lookYaw: null, allowRest: false })
-  })
-  return <primitive object={rig.root} />
-}
+const MiniCat = (p: { variant: 'kittenA' | 'kittenB' | 'kittenC'; yaw?: number; wander?: { x: number; z: number; i: number } }) => <MiniCatBase {...p} heightAt={villageHeight} />
 function HidingKitten({ variant, x, z, y }: { variant: 'kittenA' | 'kittenB' | 'kittenC'; x: number; z: number; y: number }) {
   return (
     <group position={[x, y, z]}>

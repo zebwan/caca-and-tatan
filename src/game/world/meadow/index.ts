@@ -16,7 +16,7 @@ export const meadowRegion: RegionRuntime = {
   heightAt: terrainHeight,
   entries: {
     spawn: { ...MEADOW.spawn, yaw: MEADOW.spawnYaw },
-    arch: { x: 0, z: -45.2, yaw: 0 },
+    arch: { x: 0, z: -43.5, yaw: 0 },
   },
   defaultEntry: 'spawn',
   exits: [{ id: 'arch', x: MEADOW.arch.x, z: MEADOW.arch.z, to: 'village', entry: 'south', label: 'Cuddleberry Village', requires: 'q_arch', style: 'custom' }],

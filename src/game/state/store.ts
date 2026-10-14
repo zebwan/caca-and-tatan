@@ -12,6 +12,7 @@ export type Presentation = (
   | { kind: 'keepsake'; id: string }
   | { kind: 'chapterEnd' }
   | { kind: 'banner'; title: string; subtitle: string }
+  | { kind: 'finale'; onDone?: () => void }
 ) & { uid?: number }
 
 let presentationUid = 0
@@ -160,7 +161,7 @@ export const game = {
     const cur = useGame.getState().queue[0]
     if (!cur) return
     useGame.setState((s) => ({ queue: s.queue.slice(1) }))
-    if ((cur.kind === 'dialogue' || cur.kind === 'note') && cur.onDone) cur.onDone()
+    if ((cur.kind === 'dialogue' || cur.kind === 'note' || cur.kind === 'finale') && cur.onDone) cur.onDone()
   },
   toast(text: string, icon: Toast['icon'] = 'star') {
     const id = Date.now() + Math.random()

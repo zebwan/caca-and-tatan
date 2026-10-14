@@ -16,14 +16,21 @@ export const FOREST = {
   playRadius: 56,
   bowlStart: 49,
   entries: {
-    east: { x: 46, z: 4, yaw: -Math.PI / 2 },
+    east: { x: 42, z: 5, yaw: -Math.PI / 2 },
   },
   gates: { east: { x: 52, z: 4, yaw: Math.PI / 2 } },
 
   npcs: {
     hoot: { x: 6.5, z: -13.5 } as Vec2,
     clover: { x: 26, z: 13 } as Vec2,
+    luna: { x: -2.5, z: 18.5 } as Vec2,
+    sprout: { x: -24, z: -26 } as Vec2,
   },
+  lens: { x: -38, z: -36.5 } as Vec2,
+  moonPlates: [
+    { x: 20.2, z: -33.4 },
+    { x: 27.8, z: -38.6 },
+  ] as Vec2[],
   hollowTree: { x: 2.4, z: -17.5 } as Vec2,
 
   pawTrail: [
@@ -50,11 +57,10 @@ export const FOREST = {
   stars: heart,
   altar: { x: 24, z: -36 } as Vec2,
 
-  pond: { x: -8, z: 12, r: 5.2, island: { x: -9.5, z: 12.5, r: 1.5 } },
+  pond: { x: -8, z: 12, r: 5.4, island: { x: -10.0, z: 12.3, r: 2.5 } },
   lilyPads: [
-    { x: -3.4, z: 11.6, r: 0.7 },
-    { x: -5.2, z: 12.4, r: 0.7 },
-    { x: -7.0, z: 11.8, r: 0.7 },
+    { x: -3.6, z: 11.7, r: 0.8 },
+    { x: -6.3, z: 12.1, r: 0.8 },
   ],
   giantMushrooms: [
     { x: 32, z: -21, r: 1.45, rise: 1.1 },
@@ -66,7 +72,7 @@ export const FOREST = {
   keepsakes: {
     lantern: { x: 37, z: -26.4 } as Vec2,
     songbook: { x: -41, z: -33 } as Vec2,
-    moonstone: { x: -9.5, z: 12.5 } as Vec2,
+    moonstone: { x: -10.3, z: 12.3 } as Vec2,
   },
 
   fireflies: [

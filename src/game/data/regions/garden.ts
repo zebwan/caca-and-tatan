@@ -24,25 +24,18 @@ export const GARDEN_QUESTS: QuestDef[] = [
   {
     id: 'q_g_reunion',
     region: 'garden',
-    title: 'Under Our Tree',
-    description: 'Someone is waiting beneath the heart-shaped tree.',
+    title: 'Our Wish',
+    description: 'The bridge of light leads to the heart-shaped tree where it all began.',
     main: true,
     requires: ['q_g_wishes'],
-    startLocation: L.tatan,
+    startLocation: L.meet,
     startObjective: 'Cross the bridge of light to the heart tree',
-    steps: [{ id: 'reunite', objective: 'Cross the bridge of light to the heart tree', event: 'reunite:tatan', location: L.tatan }],
-    reward: {},
+    steps: [{ id: 'reunite', objective: 'Make your wish together under the heart tree', event: 'reunite:tatan', location: L.meet }],
+    reward: { pawprints: 100 },
   },
 ]
 
-export const GARDEN_NOTES: Record<string, NoteDef> = {
-  note_g_arrive: {
-    id: 'note_g_arrive',
-    title: 'You’re here',
-    body: "This is where we made our wish. Do you remember?\n\nFour little pedestals are waiting on the islands — one for every place you passed through. Light them, and the last bridge will appear.",
-    signature: 'Tatan',
-  },
-}
+export const GARDEN_NOTES: Record<string, NoteDef> = {}
 
 /** Short lines from Tatan that float up as each wish pedestal lights. */
 export const WISH_LINES: Record<string, string> = {
@@ -53,12 +46,15 @@ export const WISH_LINES: Record<string, string> = {
 }
 
 export const GARDEN_DIALOGUE: Record<string, DialogueLine[]> = {
-  pedestal_lit: [{ speaker: NAMES.caca, text: 'The pedestal is glowing. The bridge is growing!' }],
-  tatan_wait: [{ speaker: NAMES.caca, text: 'The bridge isn’t finished yet… Light the other wishes first.' }],
-  reunion_lines: [
-    { speaker: NAMES.tatan, text: 'Caca! You found me.' },
-    { speaker: NAMES.caca, text: 'I followed the little stars. Just like you said.' },
+  garden_arrive: [
+    { speaker: NAMES.tatan, text: 'The Starlight Garden… our tree is right there in the middle.' },
+    { speaker: NAMES.tatan, text: 'Four wish pedestals float on the islands — one for each place we passed through. Let’s light them together.' },
   ],
+  tree_wait: [{ speaker: NAMES.tatan, text: 'The bridge isn’t finished yet. Let’s light the other wishes first.' }],
+  wish_ready: [
+    { speaker: NAMES.caca, text: 'We made a wish here once, and the wind carried us apart.' },
+    { speaker: NAMES.tatan, text: 'And every star in Purrland brought us back. Shall we make a new one? Together this time.' },
+  ],
+  after_ending: [{ speaker: NAMES.tatan, text: 'Wherever you go, I’m right beside you. Always.' }],
   stairs_down: [{ speaker: NAMES.caca, text: 'The starlight stairs lead back down to Bubblegum Bay.' }],
-  tatan_follow: [{ speaker: NAMES.tatan, text: 'Wherever you go, I’m right behind you.' }],
 }

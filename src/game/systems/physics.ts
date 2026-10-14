@@ -25,6 +25,8 @@ export interface Solid extends Shape {
 export interface Surface extends Shape {
   /** Absolute height at a local point (local x/z in the shape's own frame). */
   height: (lx: number, lz: number) => number
+  /** When present and false, the platform doesn't exist (e.g. a bridge not yet built). */
+  enabled?: () => boolean
 }
 
 export interface PhysicsWorld {
@@ -56,7 +58,7 @@ function surfaceHeight(s: Surface, x: number, z: number) {
 
 /** True if a platform or walkable solid covers this point. */
 export function onPlatform(w: PhysicsWorld, x: number, z: number) {
-  for (const s of w.surfaces) if (contains(s, x, z, 0.08)) return true
+  for (const s of w.surfaces) if ((!s.enabled || s.enabled()) && contains(s, x, z, 0.08)) return true
   for (const s of w.solids) if (s.walkable && contains(s, x, z, 0.05)) return true
   return false
 }
@@ -65,7 +67,7 @@ export function onPlatform(w: PhysicsWorld, x: number, z: number) {
 export function groundAt(w: PhysicsWorld, x: number, z: number, feetY: number) {
   let g = w.terrain(x, z)
   for (const s of w.surfaces) {
-    if (!contains(s, x, z, 0.08)) continue
+    if ((s.enabled && !s.enabled()) || !contains(s, x, z, 0.08)) continue
     const h = surfaceHeight(s, x, z)
     if (h <= feetY + STEP_UP && h > g) g = h
   }
@@ -74,6 +76,29 @@ export function groundAt(w: PhysicsWorld, x: number, z: number, feetY: number) {
     if (s.top <= feetY + STEP_UP && s.top > g) g = s.top
   }
   return g
+}
+
+/** Closest small platform (stepping stone, lily pad, walkable rock) to a point, with its top height. */
+export function nearestPlatform(w: PhysicsWorld, x: number, z: number, maxDist: number) {
+  let best: { x: number; z: number; top: number } | null = null
+  let bd = maxDist
+  for (const s of w.surfaces) {
+    if (s.kind !== 'circle' || (s.enabled && !s.enabled())) continue
+    const d = Math.hypot(x - s.x, z - s.z) - (s.r ?? 0) * 0.4
+    if (d < bd) {
+      bd = d
+      best = { x: s.x, z: s.z, top: s.height(0, 0) }
+    }
+  }
+  for (const s of w.solids) {
+    if (!s.walkable || s.kind !== 'circle' || (s.r ?? 0) > 2.2) continue
+    const d = Math.hypot(x - s.x, z - s.z) - (s.r ?? 0) * 0.4
+    if (d < bd) {
+      bd = d
+      best = { x: s.x, z: s.z, top: s.top }
+    }
+  }
+  return best
 }
 
 /** Over water with nothing to stand on. */

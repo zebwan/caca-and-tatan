@@ -46,9 +46,9 @@ export const VILLAGE = {
   fountain: { x: 0, z: 0 } as Vec2,
 
   entries: {
-    south: { x: 0, z: 45, yaw: Math.PI },
-    west: { x: -45, z: 0, yaw: Math.PI / 2 },
-    east: { x: 45, z: 0, yaw: -Math.PI / 2 },
+    south: { x: 0, z: 42, yaw: Math.PI },
+    west: { x: -42, z: 0, yaw: Math.PI / 2 },
+    east: { x: 42, z: 0, yaw: -Math.PI / 2 },
   },
   gates: {
     south: { x: 0, z: 51.5, yaw: 0 },

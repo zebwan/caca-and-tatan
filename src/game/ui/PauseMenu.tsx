@@ -3,13 +3,13 @@ import { game, useGame, type Settings } from '../state/store'
 import { saveSettings } from '../state/save'
 import { closeMenu } from '../systems/input'
 import { audio } from '../systems/audio'
-import { showNote } from '../systems/quests'
-import { NOTES } from '../data/story'
-import { ACCESSORIES, KEEPSAKES } from '../data/items'
+import { ACCESSORIES } from '../data/items'
 import { ALL_CLOTHES, type ClothingItem } from '../data/shop'
 import { wear } from './Shop'
+import { SaveCodePanel } from './SaveCode'
+import { MemoryBook } from './MemoryBook'
 import { newGame, quitToTitle, returnToSafeSpot } from '../flow'
-import { GiftIcon, HeartIcon, StarIcon } from './icons'
+import { GiftIcon } from './icons'
 
 type Tab = 'journal' | 'wardrobe' | 'settings'
 
@@ -18,58 +18,6 @@ export function updateSettings(patch: Partial<Settings>) {
   game.set({ settings })
   saveSettings(settings)
   audio.apply(settings)
-}
-
-function Journal() {
-  const notes = useGame((s) => s.notes)
-  const keepsakes = useGame((s) => s.keepsakes)
-  return (
-    <>
-      <h3>Tatan’s notes</h3>
-      <div className="list">
-        {notes.length === 0 && <div className="muted">No notes yet.</div>}
-        {notes.map((id) => (
-          <div
-            key={id}
-            className="item clickable"
-            onClick={() => {
-              closeMenu()
-              showNote(id)
-            }}
-          >
-            <StarIcon />
-            <div className="grow">
-              <div className="name">{NOTES[id]?.title}</div>
-              <div className="sub">Read again</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <h3 style={{ marginTop: 22 }}>Keepsakes</h3>
-      <div className="list">
-        {Object.values(KEEPSAKES).map((k) => {
-          const have = keepsakes.includes(k.id)
-          return (
-            <div
-              key={k.id}
-              className={`item ${have ? 'clickable' : 'locked'}`}
-              onClick={() => {
-                if (!have) return
-                closeMenu()
-                game.present({ kind: 'keepsake', id: k.id })
-              }}
-            >
-              <HeartIcon color={have ? '#f27aa6' : '#cdbfc7'} />
-              <div className="grow">
-                <div className="name">{have ? k.name : 'Not found yet'}</div>
-                <div className="sub">{have ? 'Look again' : 'Hidden somewhere in the meadow'}</div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </>
-  )
 }
 
 function Wardrobe() {
@@ -195,6 +143,8 @@ export function SettingsPanel() {
       </div>
       <Toggle label="Always show the paw-print trail" on={st.alwaysTrail} onChange={(v) => updateSettings({ alwaysTrail: v })} />
       <Toggle label="Shift toggles running (instead of holding)" on={st.runMode === 'toggle'} onChange={(v) => updateSettings({ runMode: v ? 'toggle' : 'hold' })} />
+      <h3 style={{ marginTop: 18 }}>Move to another device</h3>
+      <SaveCodePanel />
       <p className="muted" style={{ marginTop: 16 }}>
         Controls: WASD or arrows to move · mouse to look · Space to jump · Shift to run · E to interact · C to cuddle Tatan · M for the map · Esc to pause. Scroll to zoom the camera.
       </p>
@@ -216,7 +166,7 @@ export function PauseMenu() {
           </button>
           {(['journal', 'wardrobe', 'settings'] as Tab[]).map((t) => (
             <button key={t} className={`tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
-              {t === 'journal' ? 'Journal' : t === 'wardrobe' ? 'Wardrobe' : 'Settings'}
+              {t === 'journal' ? 'Memory Book' : t === 'wardrobe' ? 'Wardrobe' : 'Settings'}
             </button>
           ))}
           <div className="spacer" />
@@ -231,7 +181,7 @@ export function PauseMenu() {
           </button>
         </nav>
         <div className="content">
-          {tab === 'journal' && <Journal />}
+          {tab === 'journal' && <MemoryBook />}
           {tab === 'wardrobe' && <Wardrobe />}
           {tab === 'settings' && <SettingsPanel />}
         </div>

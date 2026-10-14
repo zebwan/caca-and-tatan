@@ -31,10 +31,14 @@ export const tatan = {
   cuddle() {
     tatanState.cuddleAt = runtime.time
   },
+  /** Hold a hug pose for a while without chatter (cutscenes). */
+  hug(seconds: number) {
+    tatanState.hugUntil = runtime.time + seconds
+  },
   /** Scripted control (cutscenes). */
   scripted: false,
 }
-const tatanState = { bubble: '', bubbleUntil: 0, cuddleAt: -10 }
+const tatanState = { bubble: '', bubbleUntil: 0, cuddleAt: -10, hugUntil: -10 }
 
 export function Companion() {
   const joined = useGame((s) => !!s.flags.tatanJoined)
@@ -109,8 +113,9 @@ function TatanFollower() {
       input.cuddle = false
       if (!game.inputBlocked()) tatan.cuddle()
     }
-    const cuddling = t - tatanState.cuddleAt < 2.4
-    if (cuddling && t - tatanState.cuddleAt < 0.05) {
+    const hugging = t < tatanState.hugUntil
+    const cuddling = t - tatanState.cuddleAt < 2.4 || hugging
+    if (!hugging && cuddling && t - tatanState.cuddleAt < 0.05) {
       tatan.say(pick(TATAN_LINES.cuddle), 2.4)
       audio.sfx('meow', 520)
       P.mood = 'hug'
@@ -127,7 +132,12 @@ function TatanFollower() {
     const target = new THREE.Vector3()
     let wantFace: number | null = null
     let mode: 'follow' | 'beside' | 'cuddle' | 'scout' = 'follow'
-    if (cuddling) {
+    const assist = runtime.companion.assist
+    if (assist && !cuddling) {
+      mode = 'scout'
+      target.set(assist.x, P.pos.y, assist.z)
+      s.scoutUntil = t + 0.5
+    } else if (cuddling) {
       mode = 'cuddle'
       target.set(P.pos.x + fwdX * 0.85, P.pos.y, P.pos.z + fwdZ * 0.85)
       wantFace = P.yaw + Math.PI
@@ -191,8 +201,8 @@ function TatanFollower() {
     // catch up: too far, stuck, or stranded below/above her
     s.stuckT = speed > 1 && C.pos.distanceTo(s.lastPos) < 0.6 * dt * speed * 0.3 ? s.stuckT + dt : Math.max(0, s.stuckT - dt)
     s.lastPos.copy(C.pos)
-    const tooFar = distToP > 15 || Math.abs(P.pos.y - C.pos.y) > 2.6 && distToP > 3 && P.grounded
-    if (!frozen && (tooFar || s.stuckT > 1.2) && mode !== 'scout') {
+    const tooFar = distToP > 15 || (Math.abs(P.pos.y - C.pos.y) > 2.6 && distToP > 3 && P.grounded)
+    if (!frozen && !assist && (tooFar || s.stuckT > 1.2) && mode !== 'scout') {
       for (const ang of [Math.PI, Math.PI * 0.75, Math.PI * 1.25, Math.PI / 2, -Math.PI / 2]) {
         const tx = P.pos.x + Math.sin(P.yaw + ang) * 1.5, tz = P.pos.z + Math.cos(P.yaw + ang) * 1.5
         if (overWater(W, tx, tz)) continue
@@ -206,7 +216,12 @@ function TatanFollower() {
       }
       s.stuckT = 0
     }
-    if (mode === 'scout' && s.stuckT > 1.5) s.scoutUntil = 0
+    if (mode === 'scout' && s.stuckT > 1.5 && !assist) s.scoutUntil = 0
+    if (assist && s.stuckT > 1.5 && d > 1) {
+      // can't walk there — hop straight onto the spot
+      C.pos.set(assist.x, groundAt(W, assist.x, assist.z, C.pos.y + 1), assist.z)
+      s.stuckT = 0
+    }
 
     // face movement, or face Caca when beside her
     const hs = Math.hypot(s.vel.x, s.vel.z)

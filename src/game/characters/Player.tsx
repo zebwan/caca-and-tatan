@@ -6,7 +6,7 @@ import { CatAnimator } from './catAnimation'
 import { runtime } from '../state/runtime'
 import { game, useGame } from '../state/store'
 import { input, moveVector } from '../systems/input'
-import { groundAt, overWater, resolveSolids } from '../systems/physics'
+import { groundAt, nearestPlatform, overWater, resolveSolids } from '../systems/physics'
 import { audio } from '../systems/audio'
 import { bus } from '../systems/bus'
 import { exploration } from '../systems/exploration'
@@ -73,7 +73,7 @@ export function Player() {
     const mag = Math.min(1, Math.hypot(mv.x, mv.z))
     const speed = (mv.run ? RUN : WALK) * mag
     const len = Math.hypot(wx, wz) || 1
-    const accel = P.grounded ? 14 : 5
+    const accel = P.grounded ? 14 : 8
     P.vel.x = damp(P.vel.x, (wx / len) * speed, accel, dt)
     P.vel.z = damp(P.vel.z, (wz / len) * speed, accel, dt)
     if (mag > 0.08) P.yaw = dampAngle(P.yaw, Math.atan2(wx, wz), 11, dt)
@@ -83,6 +83,12 @@ export function Player() {
     if (!blocked && runtime.time - input.jumpAt < JUMP_BUFFER && s.coyote > 0) {
       P.vel.y = JUMP
       P.grounded = false
+      // a jump always carries Caca forward in the direction she's pushing
+      if (mag > 0.1) {
+        const sp = Math.max(Math.hypot(P.vel.x, P.vel.z), WALK * mag)
+        P.vel.x = (wx / len) * sp
+        P.vel.z = (wz / len) * sp
+      }
       s.coyote = 0
       input.jumpAt = -1
       audio.sfx('jump')
@@ -91,19 +97,16 @@ export function Player() {
     if (blocked) input.jumpAt = -1
 
     // ── horizontal integration, water edges, obstacles ──
+    const ox = P.pos.x, oz = P.pos.z
     let nx = P.pos.x + P.vel.x * dt
     let nz = P.pos.z + P.vel.z * dt
+    // Water edges stop Caca while walking, but keep her run-up so she can jump across
     if (P.grounded && overWater(W, nx, nz)) {
-      if (!overWater(W, nx, P.pos.z)) {
-        nz = P.pos.z
-        P.vel.z = 0
-      } else if (!overWater(W, P.pos.x, nz)) {
-        nx = P.pos.x
-        P.vel.x = 0
-      } else {
+      if (!overWater(W, nx, P.pos.z)) nz = P.pos.z
+      else if (!overWater(W, P.pos.x, nz)) nx = P.pos.x
+      else {
         nx = P.pos.x
         nz = P.pos.z
-        P.vel.x = P.vel.z = 0
       }
     }
     const r = resolveSolids(W, nx, nz, P.pos.y)
@@ -128,6 +131,18 @@ export function Player() {
       P.grounded = false
     }
 
+    // ── landing assist: falling toward water next to a stepping stone? drift onto it ──
+    if (!P.grounded && P.vel.y < 0 && (overWater(W, P.pos.x, P.pos.z) || groundAt(W, P.pos.x, P.pos.z, P.pos.y) < P.pos.y - 4)) {
+      const near = nearestPlatform(W, P.pos.x, P.pos.z, 1.6)
+      if (near && near.top <= P.pos.y + 0.2) {
+        const k = Math.min(1, dt * 9)
+        P.pos.x += (near.x - P.pos.x) * k
+        P.pos.z += (near.z - P.pos.z) * k
+        P.vel.x *= 1 - k * 0.6
+        P.vel.z *= 1 - k * 0.6
+      }
+    }
+
     // ── gentle safety nets: water landing, falling out of the world ──
     s.splashCooldown -= dt
     if (P.pos.y < WATER_LEVEL - 0.12 && overWater(W, P.pos.x, P.pos.z)) {
@@ -143,6 +158,7 @@ export function Player() {
     if (P.pos.y < -20) {
       P.pos.copy(P.lastSafe)
       P.vel.set(0, 0, 0)
+      game.toast('Whoops! A friendly breeze carried you back.', 'heart')
     }
     s.safeTimer -= dt
     if (s.safeTimer <= 0 && P.grounded && !overWater(W, P.pos.x, P.pos.z) && waterDist(P.pos.x, P.pos.z) > 1.2) {
@@ -151,8 +167,9 @@ export function Player() {
     }
 
     // ── bookkeeping ──
-    const hs = Math.hypot(P.vel.x, P.vel.z)
-    P.gait = hs < 0.15 ? 0 : hs / WALK
+    // animate from how far she actually moved (not the wished-for speed at a water edge)
+    const hs = P.grounded ? Math.hypot(P.pos.x - ox, P.pos.z - oz) / Math.max(dt, 1e-4) : Math.hypot(P.vel.x, P.vel.z)
+    P.gait = hs < 0.3 ? 0 : hs / WALK
     if (mag > 0.05 || !P.grounded || blocked) P.idleTime = 0
     else P.idleTime += dt
     if (P.mood !== 'none') {

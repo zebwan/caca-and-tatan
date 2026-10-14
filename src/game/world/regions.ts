@@ -8,11 +8,17 @@ import type { RegionRuntime } from './regionTypes'
 import { meadowRegion } from './meadow'
 import { villageRegion } from './village'
 import { homeRegion } from './home'
+import { forestRegion } from './forest'
+import { bayRegion } from './bay'
+import { gardenRegion } from './garden'
 
 export const REGION_RUNTIME: Partial<Record<RegionId, RegionRuntime>> = {
   meadow: meadowRegion,
   village: villageRegion,
   home: homeRegion,
+  forest: forestRegion,
+  bay: bayRegion,
+  garden: gardenRegion,
 }
 
 export function registerRegion(r: RegionRuntime) {

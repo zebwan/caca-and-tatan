@@ -53,6 +53,10 @@ export const VARIANTS = {
   barnaby: { species: 'cat', fur: '#c9a07f', furLight: '#f6e6d6', inner: '#f0b1a8', outline: '#7a5a44', scale: 1.08, hat: 'cap', hatColor: '#a8e0c4', stripes: '#ad8466' },
   cocoa: { species: 'cat', fur: '#f5dfe8', furLight: '#ffffff', inner: '#f3a9c3', outline: '#916c80', scale: 0.95, hat: 'beret', hatColor: '#7fa8d8' },
   tom: { species: 'cat', fur: '#bdbbc9', furLight: '#f2f1f6', inner: '#eeb2c0', outline: '#5f5c70', scale: 1.0, hat: 'straw', hatColor: '#9cc3ea', eyes: 0.8 },
+  luna: { species: 'cat', fur: '#c3bde3', furLight: '#f1eeff', inner: '#f2b5d2', outline: '#5f5885', scale: 0.95, stripes: '#a69fd0', eyes: 1.1 },
+  sprout: { species: 'bunny', fur: '#dff5e8', furLight: '#ffffff', inner: '#f2b5d2', outline: '#5f8a76', scale: 0.72, eyes: 1.15 },
+  sunny: { species: 'bunny', fur: '#fff3c4', furLight: '#ffffff', inner: '#f8b8c4', outline: '#a08a52', scale: 0.88, hat: 'straw', hatColor: '#f27aa6' },
+  marina: { species: 'cat', fur: '#ffe0ea', furLight: '#ffffff', inner: '#f59bbd', outline: '#a06a82', scale: 0.95, hat: 'cap', hatColor: '#7fd0d8' },
   pebble: { species: 'cat', fur: '#cfd8e6', furLight: '#ffffff', inner: '#f3b5c6', outline: '#66718c', scale: 0.55, headScale: 1.15, eyes: 1.2 },
 } satisfies Record<string, CatVariant>
 export type VariantId = keyof typeof VARIANTS

@@ -36,9 +36,9 @@ const NIGHT: Atmosphere = {
   sunDir: [0.3, 0.75, -0.45],
   hemiSky: '#8a93d6',
   hemiGround: '#3f4a5e',
-  hemiIntensity: 0.85,
-  ambient: '#7f86c9',
-  ambientIntensity: 0.4,
+  hemiIntensity: 0.95,
+  ambient: '#8a90d0',
+  ambientIntensity: 0.5,
 }
 const RAIN_SKY = ['#a9aec9', '#c3c5d8', '#d9d6e3'].map((c) => new THREE.Color(c))
 
@@ -90,7 +90,9 @@ function blend(base: Atmosphere) {
   out.fogFar = L(base.fogFar, EVENING.fogFar, NIGHT.fogFar) * (1 - e.rain * 0.3)
   const d = new THREE.Vector3(...base.sunDir).lerp(new THREE.Vector3(...EVENING.sunDir), ev).lerp(new THREE.Vector3(...NIGHT.sunDir), ni).normalize()
   out.sunDir.copy(d)
-  out.stars = Math.max(base.stars ?? 0, ni) * (1 - e.rain)
+  out.stars = Math.max(Math.max(base.stars ?? 0, ni) * (1 - e.rain), e.magic)
+  out.ambientIntensity += e.magic * 0.25
+  out.hemiIntensity += e.magic * 0.3
 }
 
 /** Real-clock time of day + gentle weather cycle → runtime.env (smoothed). */
@@ -133,7 +135,7 @@ export function EnvClock() {
     e.rainbow += ((e.weather === 'rainbow' && e.night < 0.5 ? 1 : 0) - e.rainbow) * k * 0.6
 
     // lanterns glow brighter in the evening and at night
-    const glow = 0.35 + Math.max(e.evening, e.night) * 1.4 + e.rain * 0.4
+    const glow = (s.region === 'forest' ? 1.2 : 0.35) + Math.max(e.evening, e.night) * 1.4 + e.rain * 0.4
     for (const m of lampMaterials) m.emissiveIntensity = glow
   })
   return null

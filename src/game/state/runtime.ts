@@ -57,12 +57,16 @@ export const runtime = {
     petals: 0,
     weather: 'clear' as 'clear' | 'petals' | 'rain' | 'rainbow',
     hour: 12,
+    /** 0..1 — the finale lights up the whole sky. */
+    magic: 0,
   },
   /** Tatan, once he travels with Caca. */
   companion: {
     pos: new THREE.Vector3(),
     yaw: 0,
     active: false,
+    /** When set, Tatan goes and stays here to help (e.g. a pressure plate). */
+    assist: null as null | { x: number; z: number },
   },
   objectiveVia: null as string | null,
 }
